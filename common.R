@@ -21,27 +21,26 @@ columns.data <- c(
     "needle_age",           # Needle age (years) (1, 2, ...) (conifer only)
     "needle_oldnew",        # Is age greater than 1 year (old) or not (new)?
 # Values
-    "N",            # Leaf structure parameter from constrained PROSPECT inversion
-    "C_a",          # Chlorophyll a concentration (ug cm-2)
-    "C_b",          # Chlorophyll b concentration (ug cm-2)
-    "C_ab",         # Total Chlorophyll concentration (ug cm-2)
-    "C_car",        # Total Carotenoid concentraiton (ug cm-2)
-    "C_anth",       # Total anthocyanin concentration (ug cm-2)
-    "EWT",          # Equivalent water thickness (cm),
-    "LMA",          # Leaf (wet) mass per unit area (g m-2)
-    "LDMC",         # Leaf dry mass per unit area (g m-2)
-    "LDMC_gcm",     # Leaf dry mass per unit area (g cm-2) (PROSPECT's 'Cm')
-    "C_C",          # Carbon content (% dry weight)
-    "C_O",          # Oxygen content (% dry weight)
-    "C_H",          # Hydrogen content (% dry weight)
-    "C_N",          # Nitrogen content (% dry weight)
-    "CN_ratio",     # Carbon-Nitrogen ratio (C %DW / N %DW)
-    "C_prot",       # Protein content (% dry weight)
-    "C_cell",       # Cellulose content (% dry weight)
-    "C_lign",       # Lignin content (% dry weight)
-    "C_star",       # Starch content (% dry weight)
-    "C_fib",        # Fiber content (% dry weight)
-    "dN15"          # N15 isotope ratio
+    "leaf_PROSPECT_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
+    "leaf_chlorophyll_a",      # Chlorophyll a concentration (ug cm-2)
+    "leaf_chlorophyll_b",      # Chlorophyll b concentration (ug cm-2)
+    "leaf_chlorophyll_total",  # Total Chlorophyll concentration (ug cm-2)
+    "leaf_carotenoid_total",   # Total Carotenoid concentraiton (ug cm-2)
+    "leaf_anthocyanin_total",  # Total anthocyanin concentration (ug cm-2)
+    "leaf_water_content",      # Equivalent water thickness (cm),
+    "LMA",                     # Leaf (wet) mass per unit area (g m-2)
+    "leaf_drymass_area",       # Leaf dry mass per unit area (g m-2)
+    "leafC",                   # Carbon content (% dry weight)
+    "leafO",                   # Oxygen content (% dry weight)
+    "leafH",                   # Hydrogen content (% dry weight)
+    "leafN",                   # Nitrogen content (% dry weight)
+    "c2n_leaf",                # Carbon-Nitrogen ratio (C %DW / N %DW)
+    "leaf_protein_percent",   # Protein content (% dry weight)
+    "leaf_cellulose_percent", # Cellulose content (% dry weight)
+    "leaf_lignin_percent",    # Lignin content (% dry weight)
+    "leaf_starch_percent",    # Starch content (% dry weight)
+    "leaf_fiber_percent",     # Fiber content (% dry weight)
+    "leaf_deltaN15"            # N15 isotope ratio (ppm)
     )
 
 #' Reflectance and transmittance values are stored as a matrix. The row names 
