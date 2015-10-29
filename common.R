@@ -1,16 +1,18 @@
 #' Load packages
 library(data.table)
+library(reshape2)
 
 #' Define common variables and their units:
 columns.data <- c(
 # Qualitative identifiers
-    "database",             # Database from which measurement originated (e.g. LOPEX, ANGERS, FFT)
+    "project",              # Database from which measurement originated (e.g. LOPEX, ANGERS, FFT)
     "sample_ID",            # Sample unique identifier (includes database, sample name and year)
     "sample_name",          # Sample name in original database
     "sample_year",          # Year in which sample was collected
-    "species_code",         # Species code (USDA) or equivalent
+    "species_code",         # Species code (USDA or equivalent)
     "species_scientific",   # Scientific (genus species) name
     "species_common",       # Common species name
+    "family",               # Phylogenetic family
     "MD",                   # Monocot or dicot
     "plant_type",           # Plant type -- broadleaf, conifer, shrub, grass, etc.
     "succession",           # Successional stage -- early, mid, late
@@ -20,6 +22,8 @@ columns.data <- c(
     "canopy_position",      # Relative vertical canopy position (bottom, middle, top)
     "needle_age",           # Needle age (years) (1, 2, ...) (conifer only)
     "needle_oldnew",        # Is age greater than 1 year (old) or not (new)?
+    "instrument",           # Instrument model for spectral measurement
+    "wl_start", "wl_end",   # First and last wavelength of measurement
 # Values
     "leaf_PROSPECT_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
     "leaf_chlorophyll_a",      # Chlorophyll a concentration (ug cm-2)
@@ -40,7 +44,8 @@ columns.data <- c(
     "leaf_lignin_percent",    # Lignin content (% dry weight)
     "leaf_starch_percent",    # Starch content (% dry weight)
     "leaf_fiber_percent",     # Fiber content (% dry weight)
-    "leaf_deltaN15"            # N15 isotope ratio (ppm)
+    "leaf_deltaN15",           # N15 isotope ratio (ppm)
+    "comment"                 # Miscellaneous data
     )
 
 #' Reflectance and transmittance values are stored as a matrix. The row names 
@@ -60,4 +65,15 @@ get.spec <- function(sample_id, refl.trans="refl", dat=NULL, path='.'){
     return(spec)
 }
 
-    
+#' Small function to check for values in data.table based on column.
+#' Mainly used to make sure the sample_id is actually unique.
+
+check.unique <- function(dat, columns="sample_id"){
+    dn <- dat[, .N, by=columns]
+    dnu <- dn[N > 1]
+    nnu <- nrow(dnu)
+    if(nnu > 0) stop(sprintf("%d duplicates found", nnu))
+}
+
+#' The path for the species information lookup table.
+PATH.speciesinfo <- file.path("raw", "species_info.csv")
