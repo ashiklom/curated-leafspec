@@ -118,12 +118,12 @@ fft.chem <- merge(merge.caps, merge.lower, by=mergeby.lower, all=T)
 check.unique(fft.chem, mergeby.lower)
 
 #` Sort out missing values
-sample.name.regex <- "^([A-Za-z]+)([0-9]+[B]*)_([A-Za-z]+)_([BMTS]+)([ANO23]{0,1})[SAMP2]*"
-fft.chem[is.na(Species), Site := gsub(sample.name.regex, "\\1", Sample_Name)]
-fft.chem[is.na(Species), Plot := gsub(sample.name.regex, "\\1\\2", Sample_Name)]
-fft.chem[is.na(Species), Age := gsub(sample.name.regex, "\\5", Sample_Name)]
-fft.chem[is.na(Species), Height := gsub(sample.name.regex, "\\4", Sample_Name)]
-fft.chem[is.na(Species), Species := gsub(sample.name.regex, "\\3", Sample_Name)]
+#sample.name.regex <- "^([A-Za-z]+)([0-9]+[B]*)_([A-Za-z]+)_([BMTS]+)([ANO23]{0,1})[SAMP2]*"
+#fft.chem[is.na(Species), Site := gsub(sample.name.regex, "\\1", Sample_Name)]
+#fft.chem[is.na(Species), Plot := gsub(sample.name.regex, "\\1\\2", Sample_Name)]
+#fft.chem[is.na(Species), Age := gsub(sample.name.regex, "\\5", Sample_Name)]
+#fft.chem[is.na(Species), Height := gsub(sample.name.regex, "\\4", Sample_Name)]
+#fft.chem[is.na(Species), Species := gsub(sample.name.regex, "\\3", Sample_Name)]
 
 #' Merge chemistry data with `fft.infosp`
 setkeyv(fft.chem, mergeby.lower)
@@ -135,25 +135,42 @@ oldnames <- c("Sample_Name", "Sample_Year", "Site", "Plot", "Height", "Instrumen
 newnames <- c("sample_name", "sample_year", "site", "plot", "canopy_position", "instrument")
 setnames(fft.dat.raw, oldnames, newnames)
 
-#' Individually fix incorrect columns.
+#' Individually fix incorrect columns. Start with descriptive variables...
 fft.dat.raw[, project := "FFT"]
+fft.dat.raw[, sample_ID := sprintf("%s_%s_%s", project, sample_name, sample_year)]
+# MD -- Add it to species info file
+fft.dat.raw[,wl.start := 400][,wl.end := 2500]
 
+# TODO: Sort out needle age. Two columns: For pine species, old vs. new. For 
+# spruce species, N, 2, 3+
+age.pine <- c("N", "O")
+age.conifer <- c("N", 2, 3)
+pines <- grepl("pine", fft.dat.raw[,PFT])
+fft.dat.raw[pines & Age %in% age.pine, pine_needle_oldnew := Age]    # Set pine needle status
+fft.dat.raw[!(pines) & Age %in% age.conifer, spruce_needle_age := Age] # Set conifer needle age
 
-#' Merge all of them together based on sample ID
+#' ...and then move on to quantitative values.
+fft.dat.raw[,leaf_water_content := EWT_g_cm2 * 100^2]  # Convert to g m-2
+fft.dat.raw[,EWT_g_cm2 := NULL]    # Remove unused column
+setnames(fft.dat.raw, "LMA_g_DW_m2", "LMA")    # No conversion
+setnames(fft.dat.raw, "Perc_C", "leafC")      # No conversion
+setnames(fft.dat.raw, "Perc_N", "leafN")      # No conversion
+setnames(fft.dat.raw, "CNRatio", "c2n_leaf")  # No conversion
+# No protein
+setnames(fft.dat.raw, "CELL_PERC_DW", "leaf_cellulose_percent")
+setnames(fft.dat.raw, "ADL_PERC_DW", "leaf_lignin_percent")
+# No starch
+setnames(fft.dat.raw, "ADF_PERC_DW", "leaf_fiber_percent")
+setnames(fft.dat.raw, "SAMPLE_dN15", "leaf_deltaN15")     # TODO: Not sure about this unit
 
-#' Add the additional information based on sample ID
+#' Add in remaining information as a long string in "comments" column
+fft.dat.raw[, comments := NA]
+main.log <- colnames(fft.dat.raw) %in% columns.data
+main.cols <- colnames(fft.dat.raw)[main.log]
+##comment.cols <- colnames(fft.dat.raw)[!main.log]
+##comments <- fft.dat.raw[, paste(comment.cols, sep="__"), with=F)
+##fft.dat.raw[, comments := paste(comment.cols, sep="__")]
 
-
-
-
-
-## Load species information
-species.info <- fread(PATH.speciesinfo, header=TRUE)
-species.info[,Scientific := sprintf("%s %s", Genus, Species)]
-species.info[, Species := NULL]
-setnames(fftdat, "Species", "Label")
-setkey(fftdat, "Label")
-setkey(species.info, "Label")
-uk <- unique(c(fftdat[,Label], species.info[,Label]))
-fft.full <- fftdat[species.info[J(uk)]]
-save(fft.full, file="data/FFT_full_sensor.RData")
+#' Subset columns to keep.
+fft.dat <- fft.dat.raw[, main.cols, with=F]
+print.status(fft.dat)
