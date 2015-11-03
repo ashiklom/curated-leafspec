@@ -174,3 +174,5 @@ main.cols <- colnames(fft.dat.raw)[main.log]
 #' Subset columns to keep.
 fft.dat <- fft.dat.raw[, main.cols, with=F]
 print.status(fft.dat)
+
+save(fft.dat, fft.reflspec, fft.transspec, file="fft.RData")
