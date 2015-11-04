@@ -24,7 +24,7 @@ for(r in 1:nrow(lopex.dat)){
     id <- lopex.dat[r, spec_id]
     refl <- lopex.reflspec[id,]
     samps <- default.invert.prospect(refl, "identity", ngibbs, version, do.mle, quiet)
-    save(samps, file=sprintf("%s.inv.RData", id))
+    save(samps, file=sprintf("samples/%s.inv.RData", id))
     samps.bt <- burnin.thin(samps)
     samps.summary <- summary.simple(samps.bt)
     lopex.results[id,] <- as.numeric(samps.summary[cnames])
@@ -55,7 +55,7 @@ for(r in 1:nrow(angers.dat)){
     refl <- angers.reflspec[id,]
     samps <- invert.custom(observed=refl, inits=inits, ngibbs=ngibbs,
                            prior=prior, pm=pm, model=model, do.lsq=do.mle, quiet=FALSE)
-    save(samps, file=sprintf("%s.inv.RData", id))
+    save(samps, file=sprintf("samples/%s.inv.RData", id))
     samps.bt <- burnin.thin(samps)
     samps.summary <- summary.simple(samps.bt)
     angers.results[id,] <- as.numeric(samps.summary[cnames])
