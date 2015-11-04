@@ -1,0 +1,63 @@
+#' ---
+#' title: Perform inversion of LOPEX and ANGERS data
+#' author: Alexey Shiklomanov
+#' ---
+
+source("common.R")
+library(PEcAnRTM)
+ngibbs <- 50000
+version <- 5
+do.mle <- FALSE
+quiet <- TRUE
+
+#' # LOPEX inversion
+load("lopex.RData")
+
+lopex.results <- matrix(NA, ncol=12, nrow=nrow(lopex.dat))
+rownames(lopex.results) <- lopex.dat[,spec_id]
+cnames <- c("N.mu", "Cab.mu", "Car.mu", "Cw.mu", "Cm.mu", "residual.mu",
+            "N.sigma", "Cab.sigma", "Car.sigma", "Cw.sigma", "Cm.sigma", "residual.sigma")
+colnames(lopex.results) <- cnames
+print("Inverting LOPEX")
+for(r in 1:nrow(lopex.dat)){
+    print(r)
+    id <- lopex.dat[r, spec_id]
+    refl <- lopex.reflspec[id,]
+    samps <- default.invert.prospect(refl, "identity", ngibbs, version, do.mle, quiet)
+    save(samps, file=sprintf("%s.inv.RData", id))
+    samps.bt <- burnin.thin(samps)
+    samps.summary <- summary.simple(samps.bt)
+    lopex.results[id,] <- as.numeric(samps.summary[cnames])
+}
+save(lopex.results, file="lopex.invert.RData")
+
+#' # ANGERS inversion
+load("angers.RData")
+
+nwl <- ncol(angers.reflspec)
+angers.results <- matrix(NA, ncol=12, nrow=nrow(angers.dat))
+rownames(angers.results) <- angers.dat[,sample_id]
+colnames(angers.results) <- cnames
+
+#' Set up custom PROSPECT inversion parameters
+model <- function(param) prospect(param, version)[1:nwl,1]
+prior.params <- prior.defaultvals.prospect(sd.inflate = 3)
+inits <- with(prior.params, rlnorm(5, mu, sigma))
+inits[1] <- inits[1] + 1
+names(inits) <- params.prospect5
+prior <- with(prior.params, priorfunc.prospect(mu, sigma))
+pm <- c(1, 0, 0, 0, 0)
+
+print("Inverting ANGERS")
+for(r in 1:nrow(angers.dat)){
+    print(r)
+    id <- angers.dat[r, sample_id]
+    refl <- angers.reflspec[id,]
+    samps <- invert.custom(observed=refl, inits=inits, ngibbs=ngibbs,
+                           prior=prior, pm=pm, model=model, do.lsq=do.mle, quiet=FALSE)
+    save(samps, file=sprintf("%s.inv.RData", id))
+    samps.bt <- burnin.thin(samps)
+    samps.summary <- summary.simple(samps.bt)
+    angers.results[id,] <- as.numeric(samps.summary[cnames])
+}
+save(angers.results, file="angers.invert.RData")
