@@ -20,18 +20,20 @@ cnames <- names(samps.summary)
 load("lopex.RData")
 
 lopex.results <- matrix(NA, ncol=length(cnames), nrow=nrow(lopex.dat))
-rownames(lopex.results) <- lopex.dat[,spec_id]
+rownames(lopex.results) <- lopex.dat[,sample_id]
 colnames(lopex.results) <- cnames
 print("Inverting LOPEX")
+setkey(lopex.dat, sample_id)
 for(r in 1:nrow(lopex.dat)){
     print(r)
-    id <- lopex.dat[r, spec_id]
-    refl <- lopex.reflspec[id,]
+    sample.id <- lopex.dat[r, sample_id]
+    spec.id <- lopex.dat[sample.id, spec_id]
+    refl <- t(lopex.reflspec[spec.id,])
     samps <- default.invert.prospect(refl, "identity", ngibbs, version, do.mle, quiet)
-    save(samps, file=sprintf("samples/%s.inv.RData", id))
+    save(samps, file=sprintf("samples/%s.inv.RData", sample.id))
     samps.bt <- burnin.thin(samps)
     samps.summary <- summary.simple(samps.bt)
-    lopex.results[id,] <- as.numeric(samps.summary[cnames])
+    lopex.results[sample.id,] <- as.numeric(samps.summary[cnames])
 }
 save(lopex.results, file="lopex.invert.RData")
 
