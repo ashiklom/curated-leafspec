@@ -19,14 +19,17 @@ cnames <- names(samps.summary)
 #' # LOPEX inversion
 load("lopex.RData")
 
-lopex.results <- matrix(NA, ncol=length(cnames), nrow=nrow(lopex.dat))
-rownames(lopex.results) <- lopex.dat[,sample_id]
+idlist <- unique(lopex.dat[,sample_id])
+
+lopex.results <- matrix(NA, ncol=length(cnames), nrow=length(idlist))
+rownames(lopex.results) <- idlist
 colnames(lopex.results) <- cnames
 print("Inverting LOPEX")
 setkey(lopex.dat, sample_id)
-for(r in 1:nrow(lopex.dat)){
-    print(r)
-    sample.id <- lopex.dat[r, sample_id]
+i <- 1
+for(sample.id in idlist){
+    print(i)
+    i <- i + 1
     spec.id <- lopex.dat[sample.id, spec_id]
     refl <- t(lopex.reflspec[spec.id,])
     samps <- default.invert.prospect(refl, "identity", ngibbs, version, do.mle, quiet)
