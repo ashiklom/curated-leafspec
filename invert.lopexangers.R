@@ -5,7 +5,7 @@
 
 library(data.table)
 fname.sh <- "00-run-inversion.sh"
-submit.string <- 'qsub -q "geo*" -j y -l h_rt=12:00:00 -v ID=%s run-inversion.sh'
+submit.string <- 'qsub -q "geo*" -j y -l h_rt=12:00:00 -v ID=\'%s\' run-inversion.sh'
 write("#!/bin/bash", file = fname.sh)
 
 load("lopex.RData")

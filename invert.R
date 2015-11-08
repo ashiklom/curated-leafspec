@@ -6,7 +6,9 @@ invert.id <- function(id){
     project <- tolower(gsub(id.rxp, "\\1", id))
     sample.name <- gsub(id.rxp, "\\2", id)
     sample.year <- gsub(id.rxp, "\\3", id)
-    print(project)
+    print(paste0("project: ", project))
+    print(paste0("sample.name: ", sample.name))
+    print(paste0("sample.year: ", sample.year))
     load(paste0(project, ".RData"))
     dat.dat <- get(paste0(project, ".dat"))
     dat.reflspec <- get(paste0(project, ".reflspec"))
@@ -48,7 +50,7 @@ invert.id <- function(id){
     samps.list.bt <- lapply(samps.list, burnin.thin, burnin=40000, thin=1)
     samps <- burnin.thin(do.call(rbind, samps.list.bt), burnin=0)
     results <- summary.simple(samps)
-    write(results, sprintf("results/%s.inv.csv", id))
+    write.csv(results, file = sprintf("results/%s.inv.csv", id))
 }
 
 id <- commandArgs(trailingOnly=TRUE)
