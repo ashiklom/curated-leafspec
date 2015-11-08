@@ -2,7 +2,7 @@
 invert.id <- function(id){
     require(data.table)
     require(PEcAnRTM)
-    id.rxp <- "([[:alpha:]]+)_(.*)_([1-9]+$)"
+    id.rxp <- "([[:alpha:]]+)_(.*)_([[:digit:]]+)$"
     project <- tolower(gsub(id.rxp, "\\1", id))
     sample.name <- gsub(id.rxp, "\\2", id)
     sample.year <- gsub(id.rxp, "\\3", id)
