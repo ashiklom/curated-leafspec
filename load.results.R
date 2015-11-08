@@ -1,10 +1,11 @@
 library(data.table)
 flist <- list.files("results")
-id.list <- gsub("(.*).csv", "\\1", flist)
+id.list <- gsub("(.*).inv.csv", "\\1", flist)
 names(id.list) <- flist
 results.list <- list()
 for(f in flist) {
-    dat <- fread(f, header=TRUE)
+    ff <-file.path("results", f)
+    dat <- fread(ff, header=TRUE)
     dat[, sample_id := id.list[f]]
     results.list[[f]] <- dat
 }
