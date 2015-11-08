@@ -1,0 +1,55 @@
+# Perform a single inversion as a function of sample ID
+invert.id <- function(id){
+    require(data.table)
+    require(PEcAnRTM)
+    id.rxp <- "([[:alpha:]]+)_(.*)_([1-9]+$)"
+    project <- tolower(gsub(id.rxp, "\\1", id))
+    sample.name <- gsub(id.rxp, "\\2", id)
+    sample.year <- gsub(id.rxp, "\\3", id)
+    print(project)
+    load(paste0(project, ".RData"))
+    dat.dat <- get(paste0(project, ".dat"))
+    dat.reflspec <- get(paste0(project, ".reflspec"))
+    
+    ngibbs <- 50000
+    burnin <- 40000
+    nchains <- 5
+    version <- 5
+    do.mle <- FALSE
+    quiet <- TRUE
+
+# Get column names from summary.simple function (a bit of a hack)
+    samps <- matrix(0, nrow=1, ncol=6)
+    colnames(samps) <- c(params.prospect5, "residual")
+    samps.summary <- summary.simple(samps)
+    cnames <- names(samps.summary)
+
+    nwl <- ncol(dat.reflspec)
+
+# Set up custom PROSPECT inversion parameters
+    model <- function(param) prospect(param, version)[1:nwl,1]
+    prior.params <- prior.defaultvals.prospect(sd.inflate = 3)
+    prior <- with(prior.params, priorfunc.prospect(mu, sigma))
+    pm <- c(1, 0, 0, 0, 0)
+
+    index <- which(grepl(sample.name, rownames(dat.reflspec)))
+
+    refl <- dat.reflspec[index,]
+    if(!is.null(dim(refl))) refl <- t(refl)
+    inits <- with(prior.params, sapply(1:5, function(x) rlnorm(5, mu, sigma)))
+    inits[1,] <- inits[1,] + 1
+    rownames(inits) <- params.prospect5
+
+# Perform inversion and save outputs
+    samps.list <- lapply(1:5, function(i)
+                         invert.custom(observed=refl, inits=inits[,i], ngibbs=ngibbs,
+                           prior=prior, pm=pm, model=model, do.lsq=do.mle, quiet=TRUE))
+    save(samps.list, file=sprintf("samples/%s.inv.RData", id))
+    samps.list.bt <- lapply(samps.list, burnin.thin, burnin=40000, thin=1)
+    samps <- burnin.thin(do.call(rbind, samps.list.bt), burnin=0)
+    results <- summary.simple(samps)
+    write(results, sprintf("results/%s.inv.csv", id))
+}
+
+id <- commandArgs(trailingOnly=TRUE)
+invert.id(id)
