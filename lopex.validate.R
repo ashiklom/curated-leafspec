@@ -3,42 +3,40 @@ load("lopex.invert.RData")
 load("lopex.RData")
 
 # Convert lopex results to data.table and add sample_id
-lopex.results.dt <- as.data.table(lopex.results)
-lopex.results.dt[, sample_id := rownames(lopex.results)]
+angers.results.dt <- results[project == "LOPEX"]
+#lopex.results.dt[, sample_id := rownames(lopex.results)]
+
+# Average LOPEX chemistry data
+mean.chr <- function(x){
+    if(is.numeric(x)) return(mean(x, na.rm=TRUE))
+    return(x[1])
+}
+lopex.davg <- lopex.dat[,lapply(.SD, mean.chr), by=sample_id]
 
 # Merge with chemistry data
 setkey(lopex.results.dt, sample_id)
-setkey(lopex.dat, spec_id)
-lopex <- lopex.dat[lopex.results.dt]
+setkey(lopex.davg, sample_id)
+lopex <- lopex.davg[lopex.results.dt]
 
 # Some results plots
 png("lopex.validate.png", width=4, height=6, units="in", res=200)
-par(mfrow=c(3,2), pch=4)
+par(mfrow=c(3,2), pch=20, mar=c(4,4,1,1), oma=c(0,0,2,0))
 with(lopex,{
-    plot(N.mu, N)
+    plot(N.mu, N, xlim=range(c(N.q25, N.q975)), xlab='', ylab='', main="N")
+    arrows(N.q25, N, N.q975, N, length=0.05, angle=90, code=3)
     abline(0,1)
-    plot(Cab.mu, C_ab)
+    plot(Cab.mu, C_ab, xlim=range(c(Cab.q25, Cab.q975)), xlab='', ylab='', main="Chlorophyll (a,b)")
+    arrows(Cab.q25, C_ab, Cab.q975, C_ab, length=0.05, angle=90, code=3)
     abline(0,1)
-    plot(Car.mu, C_car)
+    plot(Car.mu, C_car, xlim=range(c(0, 20)), xlab='', ylab='', main="Carotenoids")
+    arrows(Car.q25, C_car, Car.q975, C_car, length=0.05, angle=90, code=3)
     abline(0,1)
-    plot(Cw.mu, EWT)
+    plot(Cw.mu, EWT, xlim=range(c(Cw.q25, Cw.q975)), xlab='', ylab='', main="Leaf water content")
+    arrows(Cw.q25, EWT, Cw.q975, EWT, length=0.05, angle=90, code=3)
     abline(0,1)
-    plot(Cm.mu, LMA)
+    plot(Cm.mu, LMA, xlim=range(c(Cm.q25, Cm.q975)), xlab='', ylab='', main="LMA")
+    arrows(Cm.q25, LMA, Cm.q975, LMA, length=0.05, angle=90, code=3)
     abline(0,1)
+    title(main="LOPEX validation", xlab="Inversion", ylab="Measurement", outer=TRUE)
 })
 dev.off()
-
-
-colnames(lopex)
-#  [1] "common_name"      "latin_name"       "Refl_file"        "Trans_file"      
-#  [5] "plant_type_lopex" "N"                "C_a"              "C_b"             
-#  [9] "C_ab"             "C_car"            "C_anth"           "EWT"             
-# [13] "LMA"              "FW"               "DW"               "A"               
-# [17] "LT"               "C_C"              "C_H"              "C_O"             
-# [21] "C_N"              "C_prot1"          "C_prot2"          "C_cell1"         
-# [25] "C_cell2"          "C_lign1"          "C_lign2"          "C_star1"         
-# [29] "C_star2"          "project"          "sample_year"      "sample_name"     
-# [33] "spec_id"          "sample_id"        "N.mu"             "Cab.mu"          
-# [37] "Car.mu"           "Cw.mu"            "Cm.mu"            "residual.mu"     
-# [41] "N.sigma"          "Cab.sigma"        "Car.sigma"        "Cw.sigma"        
-# [45] "Cm.sigma"         "residual.sigma"  
