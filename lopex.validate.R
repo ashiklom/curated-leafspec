@@ -1,9 +1,9 @@
 library(data.table)
-load("lopex.invert.RData")
+load("lopexangers.results.RData")
 load("lopex.RData")
 
 # Convert lopex results to data.table and add sample_id
-angers.results.dt <- results[project == "LOPEX"]
+#angers.results.dt <- results[project == "LOPEX"]
 #lopex.results.dt[, sample_id := rownames(lopex.results)]
 
 # Average LOPEX chemistry data
@@ -14,9 +14,9 @@ mean.chr <- function(x){
 lopex.davg <- lopex.dat[,lapply(.SD, mean.chr), by=sample_id]
 
 # Merge with chemistry data
-setkey(lopex.results.dt, sample_id)
+setkey(results, sample_id)
 setkey(lopex.davg, sample_id)
-lopex <- lopex.davg[lopex.results.dt]
+lopex <- lopex.davg[results]
 
 # Some results plots
 png("lopex.validate.png", width=4, height=6, units="in", res=200)

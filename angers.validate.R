@@ -3,13 +3,13 @@ load("lopexangers.results.RData")
 load("angers.RData")
 
 # Convert angers results to data.table and add sample_id
-angers.results.dt <- results[project == "ANGERS"]
+#angers.results.dt <- results[project == "ANGERS"]
 #angers.results.dt[, sample_id := rownames(angers.results)]
 
 # Merge with chemistry data
-setkey(angers.results.dt, sample_id)
+setkey(results, sample_id)
 setkey(angers.dat, sample_id)
-angers <- angers.dat[angers.results.dt]
+angers <- angers.dat[results]
 
 # 1:1 results plots
 png("angers.validate.png", width=4, height=6, units="in", res=200)
