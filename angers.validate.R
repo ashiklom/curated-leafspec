@@ -34,52 +34,62 @@ with(angers,{
 })
 dev.off()
 
-### Plot the 20 worst fits 
-# Calculate parameter errors
-angers[, N.error := N.mu - N]
-angers[, Cab.error := Cab.mu - C_ab]
-angers[, Car.error := Car.mu - C_car]
-angers[, Cw.error := Cw.mu - EWT]
-angers[, Cm.error := Cm.mu - LMA]
-angers[, tot.error := N.error/N + Cab.error/C_ab + Car.error/C_car + Cw.error/EWT + Cm.error/LMA]
-
-angers.bs <- angers[order(tot.error)]
-angers.es <- angers[order(tot.error, decreasing=TRUE)]
-
-pdf("angers.badresults.pdf")
-for(r in 1:20){
-    id <- angers.es[r, sample_id]
-    spec <- angers.reflspec[id,]
-    wl <- 400:2450
-    modpars <- angers.es[r, c("N.mu", "Cab.mu", "Car.mu", "Cw.mu", "Cm.mu"), with=F]
-    truepars <- angers.es[r, c("N", "C_ab", "C_car", "EWT", "LMA"), with=F]
-    mod <- prospect(modpars, 5)[wl-399,1]
-    mod.t <- prospect(truepars, 5)[wl-399,1]
-    plot(wl, spec, type='l', ylim=range(c(spec,mod), na.rm=TRUE))
-    lines(wl, mod, col=2)
-    lines(wl, mod.t, col=3)
-    legend("topright", c("Observed", "PROSECT-invert", "PROSPECT-true"), lty=1, col=1:3)
-    title(main = sprintf("Invert: N = %.2f Cab = %.2f Car = %.2f Cw = %.4f LMA = %.2f\nTrue: N = %.2f Cab = %.2f Car = %.2f Cw = %.4f LMA = %.2f", 
-                          modpars[[1]], modpars[[2]], modpars[[3]], modpars[[4]], modpars[[5]]*10000,
-                          truepars[[1]], truepars[[2]], truepars[[3]], truepars[[4]], truepars[[5]]*10000))
+# Spectral validation
+library(PEcAnRTM)
+nr <- nrow(angers)
+nwl <- ncol(angers.reflspec)
+wl <- 1:nwl + 399
+error.refl <- matrix(NA, ncol=nwl, nrow=nr)
+rownames(error.refl) <- angers[,sample_id]
+error.trans <- error.refl
+r <- 1
+id.rxp <- "ANGERS_(.*)_[[:digit:]]+$"
+pdf("angers.spectra.pdf")
+for(r in 1:nrow(angers)){
+    print(r)
+    id.full <- angers[r, sample_id]
+    id <- gsub(id.rxp, "\\1", id.full)
+    index <- which(grepl(id, rownames(angers.reflspec)))
+    index.t <- which(grepl(id, rownames(angers.transspec)))
+    spec <- angers.reflspec[index,]
+    transspec <- angers.transspec[index.t,]
+    param.inv <- angers[r, c("N.mu", "Cab.mu", "Car.mu", "Cw.mu", "Cm.mu"), with=F]
+    param.true <- angers[r, c("N", "C_ab", "C_car", "EWT", "LMA"), with=F]
+    if(any(is.na(param.true))) next
+    mod.inv <- prospect(param.inv, 5)[wl-399,]
+    mod.true <- prospect(param.true, 5)[wl-399,]
+# PDF plot
+    matplot(wl, spec, type='l', col=1)
+    lines(wl, mod.inv[,1], col=2)
+    lines(wl, mod.true[,1], col=3)
+    title(main=id.full)
+    legend("topright", c("observed", "inversion", "true sim"), lty=1, col=1:3)
+# Error matrix
+    error.refl[id.full,] <- mod.inv[,1] - spec
+    error.trans[id.full,] <- mod.inv[,2] - transspec
 }
 dev.off()
 
-pdf("angers.goodresults.pdf")
-for(r in 1:20){
-    id <- angers.bs[r, sample_id]
-    spec <- angers.reflspec[id,]
-    wl <- 400:2450
-    modpars <- angers.bs[r, c("N.mu", "Cab.mu", "Car.mu", "Cw.mu", "Cm.mu"), with=F]
-    truepars <- angers.bs[r, c("N", "C_ab", "C_car", "EWT", "LMA"), with=F]
-    mod <- prospect(modpars, 5)[wl-399,1]
-    mod.t <- prospect(truepars, 5)[wl-399,1]
-    plot(wl, spec, type='l', ylim=range(c(spec,mod), na.rm=TRUE))
-    lines(wl, mod, col=2)
-    lines(wl, mod.t, col=3)
-    legend("topright", c("Observed", "PROSECT-invert", "PROSPECT-true"), lty=1, col=1:3)
-    title(main = sprintf("Invert: N = %.2f Cab = %.2f Car = %.2f Cw = %.4f LMA = %.2f\nTrue: N = %.2f Cab = %.2f Car = %.2f Cw = %.4f LMA = %.2f", 
-                          modpars[[1]], modpars[[2]], modpars[[3]], modpars[[4]], modpars[[5]]*10000,
-                          truepars[[1]], truepars[[2]], truepars[[3]], truepars[[4]], truepars[[5]]*10000))
-}
+# Process error matrices
+reflerror.mean <- colMeans(error.refl, na.rm=TRUE)
+reflerror.q25 <- apply(error.refl, 2, quantile, 0.025, na.rm=TRUE)
+reflerror.q975 <- apply(error.refl, 2, quantile, 0.975, na.rm=TRUE)
+transerror.mean <- colMeans(error.trans, na.rm=TRUE)
+transerror.q25 <- apply(error.trans, 2, quantile, 0.025, na.rm=TRUE)
+transerror.q975 <- apply(error.trans, 2, quantile, 0.975, na.rm=TRUE)
+
+pdf("ANGERS.error.pdf")
+par(mfrow=c(2,1))
+plot(0, 0, type='n', xlim=c(400, 2500), ylim=c(-0.1, 0.1), xlab='', ylab='')
+lines(wl, reflerror.mean, col=1)
+lines(wl, reflerror.q25, lty=2)
+lines(wl, reflerror.q975, lty=2)
+abline(h=0, col=2)
+title(main="Reflectance", xlab="Wavelength", ylab="Reflectance bias")
+plot(0, 0, type='n', xlim=c(400, 2500), ylim=c(-0.2, 0.2), xlab='', ylab='')
+lines(wl, transerror.mean, col=1)
+lines(wl, transerror.q25, lty=2)
+lines(wl, transerror.q975, lty=2)
+abline(h=0, col=2)
+title(main="Transmittance", xlab="Wavelength", ylab="Transmittance bias")
 dev.off()
