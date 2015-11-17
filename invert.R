@@ -43,7 +43,7 @@ invert.id <- function(id){
     rownames(inits) <- params.prospect5
 
 # Perform inversion and save outputs
-    samps.list <- lapply(1:5, function(i)
+    samps.list <- lapply(1:nchains, function(i)
                          invert.custom(observed=refl, inits=inits[,i], ngibbs=ngibbs,
                            prior=prior, pm=pm, model=model, do.lsq=do.mle, quiet=TRUE))
     save(samps.list, file=sprintf("samples/%s.inv.RData", id))
