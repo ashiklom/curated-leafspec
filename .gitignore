@@ -1,3 +1,6 @@
+*.Rapp
+*.Rapp.history
+*.Rhistory
 *.pdf
 *.png
 raw
