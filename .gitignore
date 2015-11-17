@@ -1,6 +1,7 @@
 *.Rapp
 *.Rapp.history
 *.Rhistory
+00-run-inversion.sh
 *.pdf
 *.png
 raw
