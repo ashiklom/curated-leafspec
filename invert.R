@@ -9,7 +9,7 @@ invert.id <- function(id){
     print(paste0("project: ", project))
     print(paste0("sample.name: ", sample.name))
     print(paste0("sample.year: ", sample.year))
-    load(paste0(project, ".RData"))
+    load(paste0("processed-spec-data/", project, ".RData"))
     dat.dat <- get(paste0(project, ".dat"))
     dat.reflspec <- get(paste0(project, ".reflspec"))
     

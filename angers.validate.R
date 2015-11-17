@@ -1,6 +1,6 @@
 library(data.table)
-load("lopexangers.results.RData")
-load("angers.RData")
+load("processed-spec-data/lopexangers.results.RData")
+load("processed-spec-data/angers.RData")
 
 # Convert angers results to data.table and add sample_id
 #angers.results.dt <- results[project == "ANGERS"]
