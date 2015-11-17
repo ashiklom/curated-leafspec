@@ -26,7 +26,7 @@ setkey(both.dat, sample_id)
 dat <- results[both.dat]
 
 # Some results plots
-png("both.validation.png", width=6, height=6, units="in", res=200)
+png("figures/both.validation.png", width=6, height=6, units="in", res=200)
 par(mfrow=c(2,2), pch=20, mar=c(2,2,2,1), oma=c(4,4,1,0))
 with(dat,{
     plot(Cab.mu, C_ab, xlab='', ylab='')
@@ -59,7 +59,7 @@ rownames(error.refl) <- lopex[,sample_id]
 error.trans <- error.refl
 r <- 1
 id.rxp <- "LOPEX_(.*)_[[:digit:]]+$"
-pdf("lopex.spectra.pdf")
+pdf("figures/lopex.spectra.pdf")
 for(r in 1:nrow(lopex)){
     print(r)
     id.full <- lopex[r, sample_id]
@@ -93,7 +93,7 @@ transerror.mean <- colMeans(error.trans, na.rm=TRUE)
 transerror.q25 <- apply(error.trans, 2, quantile, 0.025, na.rm=TRUE)
 transerror.q975 <- apply(error.trans, 2, quantile, 0.975, na.rm=TRUE)
 
-pdf("LOPEX.error.pdf")
+pdf("figures/LOPEX.error.pdf")
 par(mfrow=c(2,1))
 plot(0, 0, type='n', xlim=c(400, 2500), ylim=c(-0.1, 0.1), xlab='', ylab='')
 lines(wl, reflerror.mean, col=1)

@@ -12,7 +12,7 @@ setkey(angers.dat, sample_id)
 angers <- angers.dat[results]
 
 # 1:1 results plots
-png("angers.validate.png", width=4, height=6, units="in", res=200)
+png("figures/angers.validate.png", width=4, height=6, units="in", res=200)
 par(mfrow=c(3,2), pch=20, mar=c(4,4,1,1), oma=c(0,0,2,0))
 with(angers,{
     plot(N.mu, N, xlim=range(c(N.q25, N.q975)), xlab='', ylab='', main="N")
@@ -44,7 +44,7 @@ rownames(error.refl) <- angers[,sample_id]
 error.trans <- error.refl
 r <- 1
 id.rxp <- "ANGERS_(.*)_[[:digit:]]+$"
-pdf("angers.spectra.pdf")
+pdf("figures/angers.spectra.pdf")
 for(r in 1:nrow(angers)){
     print(r)
     id.full <- angers[r, sample_id]
@@ -78,7 +78,7 @@ transerror.mean <- colMeans(error.trans, na.rm=TRUE)
 transerror.q25 <- apply(error.trans, 2, quantile, 0.025, na.rm=TRUE)
 transerror.q975 <- apply(error.trans, 2, quantile, 0.975, na.rm=TRUE)
 
-pdf("ANGERS.error.pdf")
+pdf("figures/ANGERS.error.pdf")
 par(mfrow=c(2,1))
 plot(0, 0, type='n', xlim=c(400, 2500), ylim=c(-0.1, 0.1), xlab='', ylab='')
 lines(wl, reflerror.mean, col=1)

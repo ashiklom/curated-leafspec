@@ -19,7 +19,7 @@ setkey(lopex.davg, sample_id)
 lopex <- lopex.davg[results, nomatch=0]
 
 # Some results plots
-png("lopex.validate.png", width=4, height=6, units="in", res=200)
+png("figures/lopex.validate.png", width=4, height=6, units="in", res=200)
 par(mfrow=c(3,2), pch=20, mar=c(4,4,1,1), oma=c(0,0,2,0))
 with(lopex,{
     plot(N.mu, N, xlim=range(c(N.q25, N.q975)), xlab='', ylab='', main="N")
@@ -51,7 +51,7 @@ rownames(error.refl) <- lopex[,sample_id]
 error.trans <- error.refl
 r <- 1
 id.rxp <- "LOPEX_(.*)_[[:digit:]]+$"
-pdf("lopex.spectra.pdf")
+pdf("figures/lopex.spectra.pdf")
 for(r in 1:nrow(lopex)){
     print(r)
     id.full <- lopex[r, sample_id]
@@ -85,7 +85,7 @@ transerror.mean <- colMeans(error.trans, na.rm=TRUE)
 transerror.q25 <- apply(error.trans, 2, quantile, 0.025, na.rm=TRUE)
 transerror.q975 <- apply(error.trans, 2, quantile, 0.975, na.rm=TRUE)
 
-pdf("LOPEX.error.pdf")
+pdf("figures/LOPEX.error.pdf")
 par(mfrow=c(2,1))
 plot(0, 0, type='n', xlim=c(400, 2500), ylim=c(-0.1, 0.1), xlab='', ylab='')
 lines(wl, reflerror.mean, col=1)
