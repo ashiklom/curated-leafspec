@@ -26,10 +26,12 @@ invert.id <- function(id){
     samps.summary <- summary.simple(samps)
     cnames <- names(samps.summary)
 
-    nwl <- ncol(dat.reflspec)
+    wl.all <- as.numeric(colnames(dat.reflspec))
+    wl <- wl.all[wl.all >= 400 & wl.all <= 2500]
+    wl.vec <- wl-399
 
 # Set up custom PROSPECT inversion parameters
-    model <- function(param) prospect(param, version)[1:nwl,1]
+    model <- function(param) prospect(param, version)[wl.vec,1]
     prior.params <- prior.defaultvals.prospect(sd.inflate = 3)
     prior <- with(prior.params, priorfunc.prospect(mu, sigma))
     pm <- c(1, 0, 0, 0, 0)
