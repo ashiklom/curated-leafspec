@@ -38,7 +38,7 @@ invert.id <- function(id){
 
     index <- which(grepl(sample.name, rownames(dat.reflspec)))
 
-    refl <- dat.reflspec[index,]
+    refl <- dat.reflspec[index, as.character(wl)]
     if(!is.null(dim(refl))) refl <- t(refl)
     inits <- with(prior.params, sapply(1:5, function(x) rlnorm(5, mu, sigma)))
     inits[1,] <- inits[1,] + 1
