@@ -41,6 +41,13 @@ fft.infosp <- fft.info[species.info]
 
 #' Pull out reflectance spectra into its own data.table
 fft.reflspec <- fft.refl[, c("sample_id", wl.cols), with=F]
+oldnames <- colnames(fft.reflspec)[grepl("Wave_", colnames(fft.reflspec))]
+newnames <- gsub("Wave_", "", oldnames)
+setnames(fft.reflspec, oldnames, newnames)
+fft.reflmat <- as.matrix(fft.reflspec[,-1,with=F])
+rownames(fft.reflmat) <- fft.reflspec[,sample_id]
+fft.reflspec <- fft.reflmat
+
 
 #' Repeat above steps for transmittance, but read in only sample name, year, 
 #' and spectra.
@@ -48,14 +55,20 @@ PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 fft.trans <- fread(PATH.trans, header=TRUE, select=c("Sample_Name", "Sample_Year", wl.cols))
 fft.trans[, sample_id := sprintf("FFT_%s_%s", Sample_Name, Sample_Year)]
 fft.transspec <- fft.trans[, c("sample_id", wl.cols), with=F]
+oldnames <- colnames(fft.transspec)[grepl("Wave_", colnames(fft.transspec))]
+newnames <- gsub("Wave_", "", oldnames)
+setnames(fft.transspec, oldnames, newnames)
+fft.transmat <- as.matrix(fft.transspec[,-1,with=F])
+rownames(fft.transmat) <- fft.transspec[,sample_id]
+fft.transspec <- fft.transmat
 check.unique(fft.transspec)
 
 #' Tidy up workspace by removing large, unnecessary objects
-rm(list = c("all.cols", "fft.refl", "fft.trans", "fft.info"))
+rm(list = c("all.cols", "fft.refl", "fft.trans", "fft.info", "fft.reflmat", "fft.transmat"))
 
 #' Summary of important objects so far:
-#' * `fft.reflspec` -- data.table containing reflectance spectra
-#' * `fft.transspec` -- data.table containing transmittance spectra
+#' * `fft.reflspec` -- matrix containing reflectance spectra
+#' * `fft.transspec` -- matrix containing transmittance spectra
 #' * `fft.infosp` -- data.table containing information about each sample.
 
 
@@ -175,4 +188,4 @@ main.cols <- colnames(fft.dat.raw)[main.log]
 fft.dat <- fft.dat.raw[, main.cols, with=F]
 print.status(fft.dat)
 
-save(fft.dat, fft.reflspec, fft.transspec, file="fft.RData")
+save(fft.dat, fft.reflspec, fft.transspec, file="processed-spec-data/fft.RData")
