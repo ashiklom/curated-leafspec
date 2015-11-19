@@ -50,5 +50,18 @@ for(i in 1:nrow(angers.chem)){
     angers.transspec[i,] <- read.table(fname.transspec, header=FALSE)[,2]
 }
 
-angers.dat <- angers.chem
+#' Set names for variables that don't need to be changed
+oldnames <- c("common_name", "latin_name", "N", "C_a", "C_b", "C_ab", "C_car",
+              "C_anth") 
+newnames <- c("species_common", "species_scientific", "leaf_nlayers", "leaf_chlorophyll_a", 
+              "leaf_chlorophyll_b", "leaf_chlorophyll_total", "leaf_carotenoid_total",
+              "leaf_anthocyanin_total")
+setnames(angers.chem, oldnames, newnames)
+
+#' Convert necessary units
+angers.chem[, LMA := LMA * 10000]
+angers.chem[, leaf_water_content := EWT * 10000]
+
+matchcols <- colnames(angers.chem)[colnames(angers.chem) %in% columns.data]
+angers.dat <- angers.chem[,matchcols,with=F]
 save(angers.dat, angers.reflspec, angers.transspec, file="angers.RData")
