@@ -12,9 +12,15 @@ for(f in flist){
     f.id <- gsub(f.rxp, "\\1", f)
     sbt <- lapply(samps.list, burnin.thin, burnin=40000)
     smcmc <- as.mcmc.list(lapply(sbt, as.mcmc))
-    gd <- gelman.diag(smcmc, autoburnin=FALSE)
-    gdmp <- gd$mpsrf
-    print(paste(f, round(gdmp, 3), sep="      "))
+    gd <- try(gelman.diag(smcmc, autoburnin=FALSE))
+    if(is.character(gd)) {
+        gdmp <- "ERROR"
+        gdmp.text <- gdmp
+    } else {
+        gdmp <- gd$mpsrf
+        gdmp.text <- round(gdmp, 3)
+    }
+    print(paste(f, gdmp.text, sep="      "))
     conv.list[[f.id]] <- gdmp
     if(gdmp > 3) bad.conv.list[[f.id]] <- list(gelman.diag = gd, samples = smcmc)
 }

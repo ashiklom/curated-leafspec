@@ -11,5 +11,5 @@ for(f in flist) {
 }
 
 results <- rbindlist(results.list)
-save(results, file="lopexangers.results.RData")
+save(results, file="processed-spec-data/all.results.RData")
 
