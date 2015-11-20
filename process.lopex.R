@@ -81,10 +81,12 @@ setnames(lopex.chem2, oldnames, newnames)
 lopex.chem2[, LMA := LMA * 10000]
 lopex.chem2[, leaf_water_content := EWT * 10000]
 lopex.chem2[, c2n_leaf := leafC/leafN]
-lopex.chem2[, leaf_protein_percent := mean(c(C_prot1, C_prot2), na.rm=TRUE)]
-lopex.chem2[, leaf_cellulose_percent := mean(c(C_cell1, C_cell2), na.rm=TRUE)]
-lopex.chem2[, leaf_lignin_percent := mean(c(C_lign1, C_lign2), na.rm=TRUE)]
-lopex.chem2[, leaf_starch_percent := mean(c(C_star1, C_star2), na.rm=TRUE)]
+lopex.chem2[, leaf_protein_percent := 0.5*(C_prot1 + C_prot2)]
+lopex.chem2[, leaf_cellulose_percent := 0.5*(C_cell1 + C_cell2)
+lopex.chem2[, leaf_lignin_percent := 0.5*(C_lign1 + C_lign2)]
+lopex.chem2[!(is.na(C_star1) | is.na(C_star2)), leaf_starch_percent := 0.5*(C_star1 + C_star2)]
+lopex.chem2[(is.na(C_star1) & !is.na(C_star2)), leaf_starch_percent := C_star2]
+lopex.chem2[(is.na(C_star2) & !is.na(C_star1)), leaf_starch_percent := C_star2]
 
 #' Extract columns that match "common"
 matchcols <- colnames(lopex.chem2)[colnames(lopex.chem2) %in% columns.data]
