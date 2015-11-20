@@ -4,6 +4,7 @@ id.list <- gsub("(.*).inv.csv", "\\1", flist)
 names(id.list) <- flist
 results.list <- list()
 for(f in flist) {
+    print(f)
     ff <-file.path("results", f)
     dat <- fread(ff, header=TRUE)
     dat[, sample_id := id.list[f]]

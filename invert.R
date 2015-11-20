@@ -13,12 +13,10 @@ invert.id <- function(id){
     dat.dat <- get(paste0(project, ".dat"))
     dat.reflspec <- get(paste0(project, ".reflspec"))
     
-    ngibbs <- 50000
-    burnin <- 40000
+    ngibbs <- 100000
+    burnin <- 80000
     nchains <- 5
     version <- 5
-    do.mle <- FALSE
-    quiet <- TRUE
 
 # Get column names from summary.simple function (a bit of a hack)
     samps <- matrix(0, nrow=1, ncol=6)
@@ -47,7 +45,7 @@ invert.id <- function(id){
 # Perform inversion and save outputs
     samps.list <- lapply(1:nchains, function(i)
                          invert.custom(observed=refl, inits=inits[,i], ngibbs=ngibbs,
-                           prior=prior, pm=pm, model=model, do.lsq=do.mle, quiet=TRUE))
+                           prior=prior, pm=pm, model=model, do.lsq=TRUE, quiet=TRUE, target=0.234))
     save(samps.list, file=sprintf("samples/%s.inv.RData", id))
     samps.list.bt <- lapply(samps.list, burnin.thin, burnin=40000, thin=1)
     samps <- burnin.thin(do.call(rbind, samps.list.bt), burnin=0)
