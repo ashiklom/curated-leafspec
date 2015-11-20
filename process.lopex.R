@@ -69,6 +69,25 @@ for(i in 1:nrow(lopex.chem2)){
     lopex.transspec[i,] <- read.table(fname.transspec, header=FALSE)[,2]
 }
 
-lopex.dat <- lopex.chem2
-save(lopex.dat, lopex.reflspec, lopex.transspec, file="lopex.RData")
+#' Set names for variables that don't need to be changed
+oldnames <- c("common_name", "latin_name", "N", "C_a", "C_b", "C_ab", "C_car",
+              "C_anth", "C_C", "C_H", "C_O", "C_N") 
+newnames <- c("species_common", "species_scientific", "leaf_nlayers", "leaf_chlorophyll_a", 
+              "leaf_chlorophyll_b", "leaf_chlorophyll_total", "leaf_carotenoid_total",
+              "leaf_anthocyanin_total", "leafC", "leafH", "leafO", "leafN")
+setnames(lopex.chem2, oldnames, newnames)
+
+#' Convert necessary units
+lopex.chem2[, LMA := LMA * 10000]
+lopex.chem2[, leaf_water_content := EWT * 10000]
+lopex.chem2[, c2n_leaf := leafC/leafN]
+lopex.chem2[, leaf_protein_percent := mean(c(C_prot1, C_prot2), na.rm=TRUE)]
+lopex.chem2[, leaf_cellulose_percent := mean(c(C_cell1, C_cell2), na.rm=TRUE)]
+lopex.chem2[, leaf_lignin_percent := mean(c(C_lign1, C_lign2), na.rm=TRUE)]
+lopex.chem2[, leaf_starch_percent := mean(c(C_star1, C_star2), na.rm=TRUE)]
+
+#' Extract columns that match "common"
+matchcols <- colnames(lopex.chem2)[colnames(lopex.chem2) %in% columns.data]
+lopex.dat <- lopex.chem2[,matchcols,with=F]
+save(lopex.dat, lopex.reflspec, lopex.transspec, file="processed-spec-data/lopex.RData")
 
