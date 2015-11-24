@@ -61,7 +61,6 @@ setnames(fft.transspec, oldnames, newnames)
 fft.transmat <- as.matrix(fft.transspec[,-1,with=F])
 rownames(fft.transmat) <- fft.transspec[,sample_id]
 fft.transspec <- fft.transmat
-check.unique(fft.transspec)
 
 #' Tidy up workspace by removing large, unnecessary objects
 rm(list = c("all.cols", "fft.refl", "fft.trans", "fft.info", "fft.reflmat", "fft.transmat"))
