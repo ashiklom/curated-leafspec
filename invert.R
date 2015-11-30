@@ -1,8 +1,6 @@
 # Perform a single inversion as a function of sample ID
-invert.id <- function(id){
-    require(data.table)
+invert.id <- function(id, ngibbs=100000){
     require(PEcAnRTM)
-    require(coda)
     id.rxp <- "([[:alpha:]]+)_(.*)_([[:digit:]]+)$"
     project <- tolower(gsub(id.rxp, "\\1", id))
     sample.name <- gsub(id.rxp, "\\2", id)
@@ -14,8 +12,7 @@ invert.id <- function(id){
     dat.dat <- get(paste0(project, ".dat"))
     dat.reflspec <- get(paste0(project, ".reflspec"))
 
-    ngibbs <- 100000
-    burnin <- 80000
+    burnin <- floor(0.8 * ngibbs)
     nchains <- 5
     version <- 5
     target <- 0.234
@@ -43,51 +40,33 @@ invert.id <- function(id){
     refl <- dat.reflspec[index, as.character(wl)]
     if(!is.null(dim(refl))) refl <- t(refl)
 
-    try.again <- TRUE
-    i.try <- 1
-    n.tries <- 5
-    while(try.again & i.try <= n.tries){
-        # Randomly draw initial conditions
-        inits <- with(prior.params, sapply(1:5, function(x) rlnorm(5, mu, sigma)))
-        inits[1,] <- inits[1,] + 1
-        rownames(inits) <- params.prospect5
-        # Perform inversion and save outputs
-        print(try.again)
-        print(i.try)
-        samps.list <- lapply(1:nchains, function(i)
-                             invert.custom(observed=refl, inits=inits[,i], ngibbs=ngibbs,
-                                           prior=prior, pm=pm, model=model, do.lsq=do.lsq, quiet=quiet, target=target))
-        save(samps.list, file=sprintf("samples/%s.inv.RData", id))
-        samps.list.bt <- lapply(samps.list, burnin.thin, burnin=burnin, thin=1)
-        # Check for convergence. Repeat if necessary.
-        smcmc <- as.mcmc.list(lapply(samps.list.bt, as.mcmc))
-        gd <- try(gelman.diag(smcmc, autoburnin=FALSE))
-        if(is.character(gd)) {
-            i.try <- i.try + 1
-            print("Could not calculate Gelman diag. Trying again")
-            next
-        } else {
-            gdmp <- gd$mpsrf
-            if(gdmp < 1.1){
-                msg <- sprintf("Converged with Gelman diag = %.3f", gdmp)
-                print(msg)
-                try.again <- FALSE
-                samps <- burnin.thin(do.call(rbind, samps.list.bt), burnin=0)
-                results <- summary.simple(samps)
-                results$gelman.diag <- gdmp
-                write.csv(results, file = sprintf("results/%s.inv.csv", id))
-            } else {
-                msg <- sprintf("Did not converge. GD = %.3f. Trying again.", gdmp)
-                print(msg)
-                i.try <- i.try + 1
-                target <- target * 0.9
-                if(i.try > 3) do.lsq <- TRUE
-            }
-        }
+    inits.function <- function(){
+        inits <- with(prior.params, rlnorm(5, mu, sigma))
+        inits[1] <- inits[1] + 1
+        names(inits) <- params.prospect5
+        return(inits)
     }
-    if((i.try >= n.tries) & try.again) print("Convergence was NOT achieved")
 
+    out <- invert.auto(observed = refl,
+                       model = model,
+                       ngibbs = ngibbs,
+                       nchains = 5,
+                       prior.function = prior,
+                       inits.function = inits.function,
+                       param.mins = pm,
+                       burnin = burnin,
+                       n.tries = 5,
+                       return.samples = TRUE,
+                       target = 0.234,
+                       target.adj = 0.8,
+                       do.lsq.first = FALSE,
+                       do.lsq.after = 3,
+                       save.samples = NULL)
+
+    return(out)
 }
 
-id <- commandArgs(trailingOnly=TRUE)
+#id <- commandArgs(trailingOnly=TRUE)
+id <- "LOPEX_Tri-pra_Leaf01_1993"
 invert.id(id)
+
