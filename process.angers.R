@@ -64,4 +64,8 @@ angers.chem[, leaf_water_content := EWT * 10000]
 
 matchcols <- colnames(angers.chem)[colnames(angers.chem) %in% columns.data]
 angers.dat <- angers.chem[,matchcols,with=F]
+
+#' Process species
+source("fix.species.R")
+angers.dat <- fix.species(angers.dat)
 save(angers.dat, angers.reflspec, angers.transspec, file="processed-spec-data/angers.RData")

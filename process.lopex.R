@@ -91,5 +91,9 @@ lopex.chem2[(is.na(C_star2) & !is.na(C_star1)), leaf_starch_percent := C_star2]
 #' Extract columns that match "common"
 matchcols <- colnames(lopex.chem2)[colnames(lopex.chem2) %in% columns.data]
 lopex.dat <- lopex.chem2[,matchcols,with=F]
+
+#' Fix species
+source("fix.species.R")
+lopex.dat <- fix.species(lopex.dat)
 save(lopex.dat, lopex.reflspec, lopex.transspec, file="processed-spec-data/lopex.RData")
 

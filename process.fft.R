@@ -31,7 +31,7 @@ info.cols <- all.cols[!(all.cols %in% wl.cols)]
 fft.info <- fft.refl[,info.cols, with=F]
 
 #' Load species information file
-species.info <- fread(PATH.speciesinfo, header=TRUE)
+species.info <- data.table(read.csv(PATH.speciesinfo, header=TRUE))
 
 #' Merge species information with sample information. NOTE that this excludes
 #' a few datapoints! TODO: Figure out what they are and how to include them.
@@ -199,5 +199,10 @@ main.cols <- colnames(fft.dat.raw)[main.log]
 #' Subset columns to keep.
 fft.dat <- fft.dat.raw[, main.cols, with=F]
 print.status(fft.dat)
+
+#' Fix species
+source("fix.species.R")
+fft.dat <- fft.dat[-grep("unk", species_scientific, ignore.case=TRUE),]
+fft.dat <- fix.species(fft.dat)
 
 save(fft.dat, fft.reflspec, fft.transspec, file="processed-spec-data/fft.RData")
