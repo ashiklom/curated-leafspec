@@ -129,18 +129,31 @@ setnames(merge.caps, mergeby.caps, mergeby.lower)
 fft.chem <- merge(merge.caps, merge.lower, by=mergeby.lower, all=T)
 check.unique(fft.chem, mergeby.lower)
 
-#` Sort out missing values
-#sample.name.regex <- "^([A-Za-z]+)([0-9]+[B]*)_([A-Za-z]+)_([BMTS]+)([ANO23]{0,1})[SAMP2]*"
-#fft.chem[is.na(Species), Site := gsub(sample.name.regex, "\\1", Sample_Name)]
-#fft.chem[is.na(Species), Plot := gsub(sample.name.regex, "\\1\\2", Sample_Name)]
-#fft.chem[is.na(Species), Age := gsub(sample.name.regex, "\\5", Sample_Name)]
-#fft.chem[is.na(Species), Height := gsub(sample.name.regex, "\\4", Sample_Name)]
-#fft.chem[is.na(Species), Species := gsub(sample.name.regex, "\\3", Sample_Name)]
 
 #' Merge chemistry data with `fft.infosp`
 setkeyv(fft.chem, mergeby.lower)
 setkeyv(fft.infosp, mergeby.lower)
 fft.dat.raw <- merge(fft.infosp, fft.chem, all=T)
+
+#` Sort out missing values
+fft.comp <- fft.dat.raw[!is.na(species_scientific)]
+fft.na <- fft.dat.raw[is.na(species_scientific)]
+sample.name.regex <- "^([A-Za-z]+)([0-9]+[B]*)_([A-Za-z]+)_([BMTS]+)([ANO23]{0,1})[SAMP2]*"
+fft.na[, Site := gsub(sample.name.regex, "\\1", Sample_Name)]
+fft.na[, Plot := gsub(sample.name.regex, "\\1\\2", Sample_Name)]
+fft.na[, Age := gsub(sample.name.regex, "\\5", Sample_Name)]
+fft.na[, Height := gsub(sample.name.regex, "\\4", Sample_Name)]
+fft.na[, Species := gsub(sample.name.regex, "\\3", Sample_Name)]
+na.inds <- sapply(fft.na, function(x) all(is.na(x)))
+na.cols <- names(na.inds)[!na.inds]
+fft.na <- fft.na[, na.cols, with=F]
+setkey(fft.na, Species)
+setkey(species.info, Label)
+fft.na2 <- fft.na[species.info]
+in.cols <- intersect(names(fft.na2), names(fft.comp))
+setkeyv(fft.na2, in.cols)
+setkeyv(fft.comp, in.cols)
+fft.dat.raw <- merge(fft.na2, fft.comp, all=T)
 
 #' Correct column names to match `columns.data`.
 oldnames <- c("Sample_Name", "Sample_Year", "Site", "Plot", "Height", "Instrumentation")
