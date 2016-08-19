@@ -2,7 +2,8 @@
 source("common.R")
 invert.id <- function(id, version=5, ngibbs=100000){
     require(PEcAnRTM)
-    id.split <- strsplit(id, id_separator)[[1]]
+    sep <- paste0("\\", id_separator)
+    id.split <- strsplit(id, sep)[[1]]
     project <- tolower(id.split[1])
     sample.name <- id.split[2]
     sample.year <- id.split[3]
@@ -46,7 +47,7 @@ invert.id <- function(id, version=5, ngibbs=100000){
 id <- commandArgs(trailingOnly=TRUE)
 if (length(id) < 1){
     #id <- "LOPEX_Tri-pra_Leaf01_1993"
-    id <- "Arctic-Chl_1236spul"
+    id <- "Arctic_Chl|1236spul|1000"
 }
 results <- invert.id(id, ngibbs=1e5)
 
