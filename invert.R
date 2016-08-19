@@ -1,10 +1,11 @@
 # Perform a single inversion as a function of sample ID
+source("common.R")
 invert.id <- function(id, version=5, ngibbs=100000){
     require(PEcAnRTM)
-    id.rxp <- "([[:alpha:]]+)_(.*)_([[:digit:]]+)$"
-    project <- tolower(gsub(id.rxp, "\\1", id))
-    sample.name <- gsub(id.rxp, "\\2", id)
-    sample.year <- gsub(id.rxp, "\\3", id)
+    id.split <- strsplit(id, id_separator)[[1]]
+    project <- tolower(id.split[1])
+    sample.name <- id.split[2]
+    sample.year <- id.split[3]
     print(paste0("project: ", project))
     print(paste0("sample.name: ", sample.name))
     print(paste0("sample.year: ", sample.year))
@@ -43,7 +44,10 @@ invert.id <- function(id, version=5, ngibbs=100000){
 }
 
 id <- commandArgs(trailingOnly=TRUE)
-if (length(id) < 1) id <- "LOPEX_Tri-pra_Leaf01_1993"
+if (length(id) < 1){
+    #id <- "LOPEX_Tri-pra_Leaf01_1993"
+    id <- "Arctic-Chl_1236spul"
+}
 results <- invert.id(id, ngibbs=1e5)
 
 dir.create("raw_output", showWarnings = FALSE)

@@ -37,7 +37,8 @@ file.rxp <- "an03r(.{4})[.]txt"
 angers.chem[, sample_name := sprintf("%s_%s",
                                      gsub(species.rxp, "\\1-\\2", latin_name),
                                      gsub(file.rxp, "\\1", Refl_file))]
-angers.chem[, sample_id := sprintf("%s_%s_%s", project, sample_name, sample_year)]
+angers.chem[, sample_id := paste(project, sample_name, sample_year,
+                                 sep = id_separator)]
 
 #' Read in reflectance and transmittance data into separate matrices.
 angers.reflspec <- angers.transspec <- matrix(NA, nrow=nrow(angers.chem), ncol=2051)

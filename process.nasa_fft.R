@@ -21,7 +21,7 @@ PATH.refl <- file.path(PATH.spec, "NASA_FFT_LC_Refl_Spectra_v4.csv")
 fft.refl <- fread(PATH.refl, header=TRUE)
 
 #' Create sample ID as database + sample_name + year
-fft.refl[, sample_id := sprintf("FFT_%s_%s", Sample_Name, Sample_Year)]
+fft.refl[, sample_id := sprintf("FFT|%s|%s", Sample_Name, Sample_Year)]
 check.unique(fft.refl, "sample_id")
 
 #' Isolate full sample information
@@ -161,8 +161,9 @@ newnames <- c("sample_name", "sample_year", "site", "plot", "canopy_position", "
 setnames(fft.dat.raw, oldnames, newnames)
 
 #' Individually fix incorrect columns. Start with descriptive variables...
-fft.dat.raw[, project := "FFT"]
-fft.dat.raw[, sample_ID := sprintf("%s_%s_%s", project, sample_name, sample_year)]
+fft.dat.raw[, project := "NASA_FFT"]
+fft.dat.raw[, sample_ID := paste(project, sample_name, sample_year,
+                                 sep = id_separator)]
 # MD -- Add it to species info file
 fft.dat.raw[,wl.start := 400][,wl.end := 2500]
 

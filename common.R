@@ -85,3 +85,6 @@ print.status <- function(dat){
     cat("\nThe following data have NOT been found:\n")
     print(columns.data[!present])
 }
+
+id_separator <- "|"
+

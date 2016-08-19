@@ -9,8 +9,11 @@ convert.to.na <- function(x){
 }
 
 chl.raw <- chl.raw[, lapply(.SD, convert.to.na)]
-chl.raw[, project := "Arctic-Chl"]
-chl.raw[, sample_id := paste(project, Spectra, sep="_")]
+chl.raw[, project := "Arctic_Chl"]
+chl.raw[, sample_name := Spectra]
+chl.raw[, sample_year := 1000]
+chl.raw[, sample_id := paste(project, sample_name, sample_year,
+                             sep=id_separator)]
 
 # Extract wavelength and other column names
 wl.cols <- grepl("Wave_", names(chl.raw))

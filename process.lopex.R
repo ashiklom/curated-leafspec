@@ -56,7 +56,8 @@ replace.na <- function(column){
 lopex.chem2 <- lopex.chem2[, lapply(.SD, replace.na)]
 
 #' Set sample ID.
-lopex.chem2[, sample_id := sprintf("%s_%s_%s", project, sample_name, sample_year)]
+lopex.chem2[, sample_id := paste(project, sample_name, sample_year,
+                                 sep = id_separator)]
 
 #' Read in reflectance and transmittance data into separate matrices.
 lopex.reflspec <- lopex.transspec <- matrix(NA, nrow=nrow(lopex.chem2), ncol=2101)
