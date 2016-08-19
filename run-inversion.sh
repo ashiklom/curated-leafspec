@@ -1,2 +1,2 @@
-#! /bin/bash
+#!/bin/bash
 Rscript invert.R $ID
