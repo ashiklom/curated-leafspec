@@ -204,5 +204,7 @@ print.status(fft.dat)
 source("fix.species.R")
 fft.dat <- fft.dat[-grep("unk", species_scientific, ignore.case=TRUE),]
 fft.dat <- fix.species(fft.dat)
-
-save(fft.dat, fft.reflspec, fft.transspec, file="processed-spec-data/fft.RData")
+nasa_fft <- list("traits" = fft.dat,
+                 "reflectance" = fft.reflspec,
+                 "transmittance" = fft.transspec)
+saveRDS(nasa_fft, file = "processed-spec-data/nasa_fft.rds")

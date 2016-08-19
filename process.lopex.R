@@ -95,5 +95,9 @@ lopex.dat <- lopex.chem2[,matchcols,with=F]
 #' Fix species
 source("fix.species.R")
 lopex.dat <- fix.species(lopex.dat)
-save(lopex.dat, lopex.reflspec, lopex.transspec, file="processed-spec-data/lopex.RData")
+
+lopex <- list("traits" = lopex.dat,
+              "reflectance" = lopex.reflspec,
+              "transmittance" = lopex.transspec)
+saveRDS(lopex, file="processed-spec-data/lopex.rds")
 

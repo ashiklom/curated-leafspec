@@ -68,4 +68,8 @@ angers.dat <- angers.chem[,matchcols,with=F]
 #' Process species
 source("fix.species.R")
 angers.dat <- fix.species(angers.dat)
-save(angers.dat, angers.reflspec, angers.transspec, file="processed-spec-data/angers.RData")
+
+angers <- list("traits" = angers.dat,
+               "reflectance" = angers.reflspec,
+               "transmittance" = angers.transspec)
+saveRDS(angers, file="processed-spec-data/angers.rds")
