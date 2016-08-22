@@ -19,14 +19,6 @@ oldnames <- c("English Name", "Latin Name", "Plant Type")
 newnames <- c("common_name", "latin_name", "plant_type_lopex")
 setnames(angers.chem.raw, oldnames, newnames)
 
-#' Replace "-999" with NA values
-replace.na <- function(column){
-    if(is.numeric(column)){
-        na.999 <- column <= -998
-        column[na.999] <- NA
-    }
-    return(column)
-}
 angers.chem <- angers.chem.raw[, lapply(.SD, replace.na)]
 
 #' Assign individual ID to each spectrum and leaf.

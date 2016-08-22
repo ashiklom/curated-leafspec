@@ -63,3 +63,21 @@ fix.species <- function(dat){
     return(dat2)
 }
 
+matchUSDA <- function(dat){
+    library(data.table)
+    codes <- dat[, .N, by=species_code]
+    usda_cols <- c("Symbol", "Scientific Name with Author")
+    usda_plants <- fread("raw/usda_plants.csv")[, usda_cols, with=F]
+    # Match unique IDs
+    setkey(codes, species_code)
+    setkey(usda_plants, Symbol)
+    # NOTE: For duplicates, selecting FIRST value
+    match_raw <- usda_plants[codes][!duplicated(Symbol)]
+    setkey(match_raw, Symbol)
+    setkey(dat, species_code)
+    dat_matched <- match_raw[dat]
+    setnames(dat_matched, usda_cols[2], "species_scientific")
+    match_fixed <- fix.species(dat_matched)
+    return(match_fixed)
+}
+

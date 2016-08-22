@@ -23,6 +23,7 @@ columns.data <- c(
     "pine_needle_oldnew",           # Needle age (years) (1, 2, ...) (conifer only)
     "spruce_needle_age",        # Is age greater than 1 year (old) or not (new)?
     "instrument",           # Instrument model for spectral measurement
+    "fresh_dry",               # Whether spectrum is on fresh or dry material
     "wl_start", "wl_end",   # First and last wavelength of measurement
 # Values
     "leaf_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
@@ -84,6 +85,15 @@ print.status <- function(dat){
     print(columns.data[present])
     cat("\nThe following data have NOT been found:\n")
     print(columns.data[!present])
+}
+
+#' Replace "-999" with NA values
+replace.na <- function(column){
+    if(is.numeric(column)){
+        na.999 <- column <= -998
+        column[na.999] <- NA
+    }
+    return(column)
 }
 
 id_separator <- "|"
