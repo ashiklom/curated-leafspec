@@ -87,10 +87,10 @@ print.status <- function(dat){
     print(columns.data[!present])
 }
 
-#' Replace "-999" with NA values
-replace.na <- function(column){
+#' Replace "-999" (and similar) with NA values
+replace.na <- function(column, na.val = -999){
     if(is.numeric(column)){
-        na.999 <- column <= -998
+        na.999 <- column <= na.val + 1
         column[na.999] <- NA
     }
     return(column)

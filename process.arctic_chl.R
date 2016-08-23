@@ -2,13 +2,7 @@
 source("common.R")
 chl.raw <- fread("raw/Chlorophyll_Data_QA_Spectra_v1_forR.csv", header=TRUE)
 
-# Convert -9999 values to na
-convert.to.na <- function(x){
-    if(is.numeric(x)) x[x == -9999] <- NA
-    return(x)
-}
-
-chl.raw <- chl.raw[, lapply(.SD, convert.to.na)]
+chl.raw <- chl.raw[, lapply(.SD, replace.na)]
 chl.raw[, project := "Arctic_Chl"]
 chl.raw[, sample_name := Spectra]
 chl.raw[, sample_year := 1000]
@@ -47,6 +41,7 @@ chl.reflspec <- chl.raw[, wl.names, with=F]
 wl.newnames <- gsub("Wave_", "", wl.names)
 setnames(chl.reflspec, wl.names, wl.newnames)
 chl.reflspec <- as.matrix(chl.reflspec)
+rownames(chl.reflspec) <- chl.raw[, sample_id]
 
 arctic_chl <- list("traits" = chl.dat, "reflectance" = chl.reflspec)
 saveRDS(arctic_chl, file = "processed-spec-data/arctic_chl.rds")

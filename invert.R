@@ -14,15 +14,21 @@ invert.id <- function(id, version=5, ngibbs=100000){
     dat.dat <- dat.full$traits
     dat.reflspec <- dat.full$reflectance
 
+    wl.all <- as.numeric(colnames(dat.reflspec))
+    wl <- wl.all[wl.all >= 400 & wl.all <= 2500]
+    wl.vec <- wl-399
+
+    index <- which(grepl(sample.name, rownames(dat.reflspec)))
+    refl <- dat.reflspec[index, as.character(wl)]
+    if (!is.null(dim(refl))) refl <- t(refl)
+    if (any(dim(refl) < 1)) stop(sprintf("Reflectance spectrum %s not found", 
+                                         sample.name))
+
     # Get column names from summary.simple function (a bit of a hack)
     samps <- matrix(0, nrow=1, ncol=6)
     colnames(samps) <- c(params.prospect5, "residual")
     samps.summary <- summary.simple(samps)
     cnames <- names(samps.summary)
-
-    wl.all <- as.numeric(colnames(dat.reflspec))
-    wl <- wl.all[wl.all >= 400 & wl.all <= 2500]
-    wl.vec <- wl-399
 
     # Set up custom PROSPECT inversion parameters
     invert.options <- default.settings.prospect
@@ -31,10 +37,6 @@ invert.id <- function(id, version=5, ngibbs=100000){
     invert.options$burnin <- floor(ngibbs * 0.8)
     invert.options$n.tries <- 5
     invert.options$nchains <- 5
-
-    index <- which(grepl(sample.name, rownames(dat.reflspec)))
-    refl <- dat.reflspec[index, as.character(wl)]
-    if(!is.null(dim(refl))) refl <- t(refl)
 
     out <- invert.auto(observed = refl,
                        invert.options = invert.options,
