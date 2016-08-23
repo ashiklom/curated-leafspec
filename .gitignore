@@ -8,3 +8,6 @@ raw
 *.sh.o*
 figures
 raw_output
+runs.txt
+no.convergence.txt
+logs
