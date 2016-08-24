@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 #' ---
-#' title: Perform inversion of LOPEX and ANGERS data
+#' title: Invert dataset by name
 #' author: Alexey Shiklomanov
 #' ---
 
@@ -13,16 +13,20 @@ raw_args <- commandArgs(trailingOnly = TRUE)
 
 for (arg in raw_args){
     write("#!/bin/bash -l", file = fname.sh)
-    load_fname <- sprintf("processed-spec-data/%s.rds", arg)
-    if (file.exists(load_fname)) {
-        dat <- readRDS(load_fname)$traits
-        dat.idlist <- unique(dat[,sample_id])
-        write(sprintf(submit.string, dat.idlist), file=fname.sh, append=TRUE)
-        system(paste("chmod +x", fname.sh))
-        system(paste0("./", fname.sh))
+    if (arg == "no_convergence") {
+        dat.idlist <- readLines("no.convergence.txt")
     } else {
-        warning(paste(load_fname, "doesn't exist. Skipping"))
-        next
+        load_fname <- sprintf("processed-spec-data/%s.rds", arg)
+        if (file.exists(load_fname)) {
+            dat <- readRDS(load_fname)$traits
+            dat.idlist <- unique(dat[,sample_id])
+        } else {
+            warning(paste(load_fname, "doesn't exist. Skipping"))
+            next
+        }
     }
+    write(sprintf(submit.string, dat.idlist), file=fname.sh, append=TRUE)
+    system(paste("chmod +x", fname.sh))
+    system(paste0("./", fname.sh))
 }
 

@@ -37,6 +37,7 @@ invert.id <- function(id, version=5, ngibbs=100000){
     invert.options$burnin <- floor(ngibbs * 0.8)
     invert.options$n.tries <- 5
     invert.options$nchains <- 5
+    invert.options$do.lsq <- FALSE
 
     out <- invert.auto(observed = refl,
                        invert.options = invert.options,
