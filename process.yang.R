@@ -92,6 +92,7 @@ readYang <- function(sample_year, sample_site) {
         setnames(spec, c("Wavelength", dat_trait[sample_doy == doys[i], sample_id]))
         spec <- spec[Wavelength != 0]
         spec_mat <- as.matrix(spec) %>% t()
+        spec_mat[spec_mat < 1e-10] <- NA
         colnames(spec_mat) <- spec_mat['Wavelength',]
         return(spec_mat[-1,])
     }
