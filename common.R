@@ -9,6 +9,7 @@ columns.data <- c(
     "sample_id",            # Sample unique identifier (includes database, sample name and year)
     "sample_name",          # Sample name in original database
     "sample_year",          # Year in which sample was collected
+    "sample_doy",           # Day of year sample was collected
     "species_code",         # Species code (USDA or equivalent)
     "species_scientific",   # Scientific (genus species) name
     "species_common",       # Common species name

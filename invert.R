@@ -51,7 +51,8 @@ id <- commandArgs(trailingOnly=TRUE)
 if (length(id) < 1){
     #id <- "LOPEX_Tri-pra_Leaf01_1993"
     #id <- "Arctic_Chl|1236spul|1000"
-    id <- "ACCP|92CWS20BA2|1992"
+    #id <- "ACCP|92CWS20BA2|1992"
+    id <- "YangMV|AUN1_159|2011"
 }
 results <- invert.id(id, ngibbs=1e5)
 
