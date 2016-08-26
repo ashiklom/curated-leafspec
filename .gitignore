@@ -9,5 +9,6 @@ raw
 figures
 raw_output
 runs.txt
+id_list.txt
 no.convergence.txt
 logs

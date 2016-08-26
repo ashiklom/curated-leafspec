@@ -92,7 +92,7 @@ readYang <- function(sample_year, sample_site) {
         setnames(spec, c("Wavelength", dat_trait[sample_doy == doys[i], sample_id]))
         spec <- spec[Wavelength != 0]
         spec_mat <- as.matrix(spec) %>% t()
-        spec_mat[spec_mat < 1e-10] <- NA
+        if (all(is.na(spec_mat))) return(NULL)
         colnames(spec_mat) <- spec_mat['Wavelength',]
         return(spec_mat[-1,])
     }
@@ -119,8 +119,12 @@ readYang <- function(sample_year, sample_site) {
         if (is_HF) trans_list[[i]] <- getSpec(trans_flist[i])
     }
     
+    refl_list <- refl_list[!sapply(refl_list, is.null)]
     refl_full <- do.call(rbind, refl_list)
-    if (is_HF) trans_full <- do.call(rbind, trans_list)
+    if (is_HF) {
+        trans_list <- trans_list[!sapply(trans_list, is.null)]
+        trans_full <- do.call(rbind, trans_list)
+    }
 
     out <- list(traits = dat_trait, 
                 reflectance = refl_full)
