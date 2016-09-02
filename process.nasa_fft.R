@@ -7,6 +7,7 @@
 
 #' Source common script.
 source("common.R")
+options(datatable.verbose=FALSE)
 
 #' Set paths for FFT data
 PATH.FFT <- file.path("raw","NASA_FFT")
