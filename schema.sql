@@ -37,7 +37,8 @@ CREATE TABLE specInfo(
     Comments TEXT);
 
 CREATE TABLE spectra(
-    SampleID INTEGER PRIMARY KEY,
+    SpecObsID INTEGER PRIMARY KEY,
+    SampleID INTEGER,
     Wavelength REAL,
     Value REAL);
 
@@ -52,5 +53,11 @@ CREATE TABLE species(
     GrowthForm TEXT,
     Cotyledon TEXT,
     Succession TEXT,
+    Comments TEXT);
+
+CREATE TABLE results(
+    SpectraID INTEGER PRIMARY KEY,
+    TraitID INTEGER,
+    Value REAL,
     Comments TEXT);
 

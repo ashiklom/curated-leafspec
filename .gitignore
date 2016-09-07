@@ -12,3 +12,4 @@ runs.txt
 id_list.txt
 no.convergence.txt
 logs
+specdb.sqlite

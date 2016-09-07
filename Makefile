@@ -5,6 +5,9 @@ TARGETS := $(patsubst %, processed-spec-data/%.rds, $(DATA))
 
 all: $(TARGETS)
 
+schema:
+	sqlite3 specdb.sqlite < schema.sql
+
 processed-spec-data/%.rds: process.%.R
 	Rscript $<
 
@@ -15,5 +18,5 @@ clean:
 	rm -rf 00-run-inversion.sh
 
 purge: clean
-	rm -rf processed-spec-data/*
+	rm -rf specdb.sqlite
 	
