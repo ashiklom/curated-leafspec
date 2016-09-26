@@ -2,52 +2,9 @@
 library(data.table)
 library(reshape2)
 
-#' Define common variables and their units:
-columns.data <- c(
-# Qualitative identifiers
-    "project",              # Database from which measurement originated (e.g. LOPEX, ANGERS, FFT)
-    "sample_id",            # Sample unique identifier (includes database, sample name and year)
-    "sample_name",          # Sample name in original database
-    "sample_year",          # Year in which sample was collected
-    "sample_doy",           # Day of year sample was collected
-    "species_code",         # Species code (USDA or equivalent)
-    "species_scientific",   # Scientific (genus species) name
-    "species_common",       # Common species name
-    "family",               # Phylogenetic family
-    "MD",                   # Monocot or dicot
-    "plant_type",           # Plant type -- broadleaf, conifer, shrub, grass, etc.
-    "succession",           # Successional stage -- early, mid, late
-    "PFT",                  # Functional type, defined as plant type x succession
-    "site",                 # Site designation -- currently database-specific
-    "plot",                 # Plot designation -- currently database-specific
-    "canopy_position",      # Relative vertical canopy position (bottom, middle, top)
-    "pine_needle_oldnew",           # Needle age (years) (1, 2, ...) (conifer only)
-    "spruce_needle_age",        # Is age greater than 1 year (old) or not (new)?
-    "instrument",           # Instrument model for spectral measurement
-    "fresh_dry",               # Whether spectrum is on fresh or dry material
-    "wl_start", "wl_end",   # First and last wavelength of measurement
-# Values
-    "leaf_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
-    "leaf_chlorophyll_a",      # Chlorophyll a concentration (ug cm-2)
-    "leaf_chlorophyll_b",      # Chlorophyll b concentration (ug cm-2)
-    "leaf_chlorophyll_total",  # Total Chlorophyll concentration (ug cm-2)
-    "leaf_carotenoid_total",   # Total Carotenoid concentraiton (ug cm-2)
-    "leaf_anthocyanin_total",  # Total anthocyanin concentration (ug cm-2)
-    "leaf_water_content",      # Equivalent water thickness (g m-2)
-    "LMA",                     # Leaf dry mass per unit area (g m-2)
-    "leafC",                   # Carbon content (% dry weight)
-    "leafO",                   # Oxygen content (% dry weight)
-    "leafH",                   # Hydrogen content (% dry weight)
-    "leafN",                   # Nitrogen content (% dry weight)
-    "c2n_leaf",                # Carbon-Nitrogen ratio (C %DW / N %DW)
-    "leaf_protein_percent",   # Protein content (% dry weight)
-    "leaf_cellulose_percent", # Cellulose content (% dry weight)
-    "leaf_lignin_percent",    # Lignin content (% dry weight)
-    "leaf_starch_percent",    # Starch content (% dry weight)
-    "leaf_fiber_percent",     # Fiber content (% dry weight)
-    "leaf_deltaN15",           # N15 isotope ratio (ppm)
-    "comments"                 # Miscellaneous data
-    )
+source("dbFunctions.R")
+
+db <- src_sqlite("specdb.sqlite")
 
 #' Reflectance and transmittance values are stored as a matrix. The row names 
 #' are the sample ID, and the column names are the wavelengths. The following 
@@ -79,15 +36,6 @@ check.unique <- function(dat, columns="sample_id"){
 #' The path for the species information lookup table.
 PATH.speciesinfo <- file.path("raw", "species_info.csv")
 
-#' Small function to print which data have and have not been loaded.
-print.status <- function(dat){
-    present <- columns.data %in% colnames(dat)
-    cat("\nThe following data have been loaded:\n")
-    print(columns.data[present])
-    cat("\nThe following data have NOT been found:\n")
-    print(columns.data[!present])
-}
-
 #' Replace "-999" (and similar) with NA values
 replace.na <- function(column, na.val = -999){
     if(is.numeric(column)){
@@ -99,3 +47,79 @@ replace.na <- function(column, na.val = -999){
 
 id_separator <- "|"
 
+#' Define common variables and their units:
+columns_traits<- c(
+        "leaf_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
+        "leaf_chlorophyll_a",      # Chlorophyll a concentration (ug cm-2)
+        "leaf_chlorophyll_b",      # Chlorophyll b concentration (ug cm-2)
+        "leaf_chlorophyll_total",  # Total Chlorophyll concentration (ug cm-2)
+        "leaf_carotenoid_total",   # Total Carotenoid concentraiton (ug cm-2)
+        "leaf_anthocyanin_total",  # Total anthocyanin concentration (ug cm-2)
+        "leaf_water_content",      # Equivalent water thickness (g m-2)
+        "leaf_mass_per_area",      # Leaf dry mass per unit area (g m-2)
+        "leaf_C_percent",          # Carbon content (% dry weight)
+        "leaf_O_percent",          # Oxygen content (% dry weight)
+        "leaf_H_percent",          # Hydrogen content (% dry weight)
+        "leaf_N_percent",          # Nitrogen content (% dry weight)
+        "leaf_CN_ratio",           # Carbon-Nitrogen ratio (C %DW / N %DW)
+        "leaf_protein_percent",    # Protein content (% dry weight)
+        "leaf_cellulose_percent",  # Cellulose content (% dry weight)
+        "leaf_lignin_percent",     # Lignin content (% dry weight)
+        "leaf_starch_percent",     # Starch content (% dry weight)
+        "leaf_fiber_percent",      # Fiber content (% dry weight)
+        "leaf_deltaN15",           # N15 isotope ratio (ppm)
+        "comments"                 # Miscellaneous data
+        )
+
+columns_samples <- c('SampleID',
+                     'ProjectID',
+                     'SpeciesID',
+                     'FullName',
+                     'SampleName',
+                     'SampleYear',
+                     'SampleDate',
+                     'CanopyPosition',
+                     'NeedleAge',
+                     'NeedleOldNew',
+                     'SiteID',
+                     'PlotID',
+                     'Comments')
+
+columns_specinfo <- c('SpectraID',
+                      'SampleID',
+                      'SpectraType',
+                      'Instrument',
+                      'Calibration',
+                      'Apparatus',
+                      'Comments')
+
+columns_traits <- c('ObservationID',
+                    'SampleID',
+                    'TraitID',
+                    'Value',
+                    'Comments')
+
+columns_specInfo <- c('SpectraID',
+                      'SampleID',
+                      'SpectraType',
+                      'Instrument',
+                      'Calibration',
+                      'Apparatus',
+                      'Comments')
+
+columns_spectra <- c('SpecObsID',
+                     'SampleID',
+                     'Wavelength',
+                     'Value')
+
+columns_sites <- c('SiteID',
+                   'SiteName',
+                   'SiteDescription',
+                   'Comments')
+
+columns_plots <- c('PlotID',
+                   'PlotName',
+                   'PlotDescription',
+                   'Latitude',
+                   'Longitude',
+                   'Comments')

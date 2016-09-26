@@ -1,4 +1,4 @@
-Trait,Description,Unit
+TraitName,Description,Unit
 leaf_nlayers,Leaf structure parameter from constrained PROSPECT inversion,unitless
 leaf_chlorophyll_a,Chlorophyll a concentration (ug cm-2),ug cm-2
 leaf_chlorophyll_b,Chlorophyll b concentration (ug cm-2),ug cm-2

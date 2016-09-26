@@ -5,7 +5,7 @@ table_name <- "traitInfo"
 input_data <- read.csv("traitInfo.csv", stringsAsFactors = FALSE) %>% 
     tbl_df
 
-insert <- mergeWithSQL(db, table_name, input_data, "Trait")
+insert <- mergeWithSQL(db, table_name, input_data, "TraitName")
 
 # Test
 #traits <- db %>% tbl("traitInfo") %>% collect()

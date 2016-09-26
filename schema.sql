@@ -3,22 +3,43 @@ CREATE TABLE samples(
     ProjectID INTEGER,
     SpeciesID INTEGER,
     FullName TEXT,
-    Name TEXT,
-    Year INTEGER,
-    Date TEXT,
+    SampleName TEXT,
+    SampleYear INTEGER,
+    SampleDate TEXT,
     CanopyPosition TEXT,
     NeedleAge INTEGER,
-    OldNew TEXT,
+    NeedleOldNew TEXT,
+    SiteID INTEGER,
+    PlotID INTEGER,
+    Comments TEXT);
+
+CREATE TABLE sites(
+    SiteID INTEGER PRIMARY KEY,
     SiteName TEXT,
+    SiteDescription TEXT,
+    Comments);
+
+CREATE TABLE plots(
+    PlotID INTEGER PRIMARY KEY,
+    SiteID INTEGER,
     PlotName TEXT,
+    PlotDescription TEXT,
     Latitude REAL,
     Longitude REAL,
+    Comments);
+
+CREATE TABLE projects(
+    ProjectID INTEGER PRIMARY KEY,
+    ProjectName TEXT,
+    ProjectCode TEXT,
+    Affiliation TEXT,
+    PointOfContact TEXT,
     Comments TEXT);
 
 CREATE TABLE traitInfo(
     TraitID INTEGER PRIMARY KEY,
-    Trait TEXT,
-    Description TEXT,
+    TraitName TEXT,
+    TraitDescription TEXT,
     Unit TEXT,
     Comments TEXT);
 
@@ -33,27 +54,16 @@ CREATE TABLE specInfo(
     SpectraID INTEGER PRIMARY KEY,
     SampleID INTEGER,
     SpectraType TEXT,
-    InstrumentID INTEGER,
+    Instrument TEXT,
+    Calibration TEXT,
+    Apparatus TEXT,
     Comments TEXT);
 
 CREATE TABLE spectra(
     SpecObsID INTEGER PRIMARY KEY,
-    SampleID INTEGER,
+    SpectraID INTEGER,
     Wavelength REAL,
     Value REAL);
-
-CREATE TABLE species(
-    SpeciesID INTEGER PRIMARY KEY,
-    ScientificName TEXT,
-    CommonName TEXT,
-    USDA_Code TEXT,
-    Family TEXT,
-    Phenology TEXT,
-    LeafType TEXT,
-    GrowthForm TEXT,
-    Cotyledon TEXT,
-    Succession TEXT,
-    Comments TEXT);
 
 CREATE TABLE results(
     SpectraID INTEGER PRIMARY KEY,

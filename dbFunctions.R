@@ -1,4 +1,6 @@
 library(RSQLite)
+library(dtplyr)
+library(data.table)
 library(dplyr)
 
 matchColumns <- function(db, table_name, input_data) {
@@ -12,27 +14,43 @@ matchColumns <- function(db, table_name, input_data) {
             input_data[[cl]] <- as(NA, columns[cl])
         }
     }
-    input_data <- input_data[, column_names]
-    return(input_data)
+    out_data <- select_(input_data, .dots = column_names)
+    return(out_data)
 }
 
-mergeWithSQL <- function(db, table_name, input_data, key) {
+mergeWithSQL <- function(db, table_name, input_data, searchkey = NULL,
+                         return.table = TRUE) {
     # Get keys from SQL table
-    sql_keys <- tbl(db, table_name) %>% 
-        select_(key) %>%
-        collect() %>%
-        .[[key]]
-    new_input <- matchColumns(db, table_name, input_data) %>%
-        filter(!(.[[key]] %in% sql_keys))
+    new_input <- matchColumns(db, table_name, input_data)
+    if (!is.null(searchkey)) {
+        sql_keys <- tbl(db, table_name) %>% 
+            select_(searchkey) %>%
+            collect() %>%
+            .[[searchkey]]
+        new_input <- new_input %>%
+            filter(!(.[[searchkey]] %in% sql_keys))
+    }
     insert <- db_insert_into(db$con, table_name, new_input)
-    return(insert)
+    stopifnot(insert)
+    if (!return.table) return(insert)
+    else {
+        if (!is.null(searchkey)) {
+            out_table <- tbl(db, table_name) %>%
+                select_(1, searchkey) %>%
+                collect() %>%
+                left_join(input_data, by = searchkey)
+        } else {
+            out_table <- tbl(db, table_name) %>%
+                collect()
+        }
+        return(out_table)
+    }
 }
 
-## Variables for testing
-#db <- src_sqlite("specdb.sqlite")
-#table_name <- "traitInfo"
-#input_data <- read.csv("traitInfo.csv", stringsAsFactors = FALSE) %>% 
-    #tbl_df
-#key <- "Trait"
-#matchdf <- matchColumns(db, table_name, input_data)
 
+clearTables <- function(db, table_names) {
+    for (tb in table_names) {
+        qry <- sprintf("DELETE FROM %s", tb)
+        dbSendQuery(db$con, qry)
+    }
+}

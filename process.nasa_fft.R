@@ -7,206 +7,252 @@
 
 #' Source common script.
 source("common.R")
-options(datatable.verbose=FALSE)
+
+#' Create entry in `projects` table and grab projectID
+ProjectCode <- "NASA_FFT"
+nasa_fft.projects <- tibble(
+    ProjectName = "NASA Forest Functional Types",
+    ProjectCode = ProjectCode,
+    Affiliation = "FERST - University of Wisconsin Madison",
+    PointOfContact = "Serbin, Shawn")
+insert_projects <- mergeWithSQL(db, "projects", 
+                                nasa_fft.projects,
+                                "ProjectName")
+ProjectID <- tbl(db, "projects") %>% 
+    filter(ProjectName == nasa_fft.projects[["ProjectName"]]) %>%
+    select(ProjectID) %>%
+    collect() %>%
+    .[[1]]
 
 #' Set paths for FFT data
 PATH.FFT <- file.path("raw","NASA_FFT")
-PATH.chem <- file.path(PATH.FFT, "chem")
-PATH.spec <-file.path(PATH.FFT, "spec")
+
+#' Get species IDs
+PATH.fftspecies <- file.path(PATH.FFT, "fft.species.info.csv")
+species_fftlabel <- fread(PATH.fftspecies) %>% setkey(ScientificName)
+species_sql <- tbl(db, "species") %>%
+    distinct(id, scientificname) %>%
+    collect() %>%
+    rename(ScientificName = scientificname) %>%
+    setDT() %>%
+    setkey(ScientificName)
+custom_matches <- c("Carex L." = 251,  # Carex genus
+                    "Prunus spp" = 1094) # Prunus genus
+
+species_merge <- left_join(species_fftlabel, species_sql, 
+                              by = "ScientificName") %>%
+    mutate(SpeciesID = ifelse(is.na(id),
+                              custom_matches[ScientificName],
+                              id)) %>%
+    select(-id) %>%
+    filter(!is.na(SpeciesID)) %>%
+    setDT() %>%
+    setkey(FFT_Label)
+
 
 #' # Process reflectance and transmittance data
 #' Set reflectance data path
+PATH.spec <- file.path(PATH.FFT, "spec")
 PATH.refl <- file.path(PATH.spec, "NASA_FFT_LC_Refl_Spectra_v4.csv")
 
 #' Load reflectance data 
-fft.refl <- fread(PATH.refl, header=TRUE)
+nasa_fft.all_refl <- fread(PATH.refl, header=TRUE)
+nasa_fft.all_refl[, c("ProjectCode", "ProjectID") := list(ProjectCode,
+                                                          ProjectID)]
 
-#' Create sample ID as database + sample_name + year
-fft.refl[, sample_id := sprintf("FFT|%s|%s", Sample_Name, Sample_Year)]
-check.unique(fft.refl, "sample_id")
+#' Add species ID
+nasa_fft.all_refl <- nasa_fft.all_refl %>%
+    left_join(rename(species_merge, Species = FFT_Label)) %>%
+    select(-Species) %>%
+    setDT()
+
+#' Update sites table and get SiteID
+sitecols <- c("Site", "Site_Name", "State")
+nasa_fft.sites <- unique(nasa_fft.all_refl[, sitecols, with=FALSE])
+nasa_fft.sites[, SiteDescription := sprintf("%s (%s); %s, USA", 
+                                     Site_Name, Site, State)]
+setnames(nasa_fft.sites, "Site_Name", "SiteName")
+sites_merge <- mergeWithSQL(db, "sites", nasa_fft.sites, "SiteName") %>%
+    setDT() %>%
+    setkey(SiteName)
+
+setkey(nasa_fft.all_refl, Site_Name)
+nasa_fft.all_refl <- nasa_fft.all_refl %>%
+    left_join(sites_merge) %>%
+    select(-SiteName, -Site, -State) %>%
+    setDT()
+
+#' Update plots table and get PlotID
+plotcols <- c("Plot", "SiteID")
+nasa_fft.plots <- unique(nasa_fft.all_refl[, plotcols, with=FALSE])
+nasa_fft.plots[, PlotName := sprintf("NASA_FFT Plot %s", Plot)]
+plots_merge <- mergeWithSQL(db, "plots", nasa_fft.plots, "PlotName") %>%
+    select(-SiteID) %>%
+    setDT() %>%
+    setkey(Plot)
+nasa_fft.all_refl <- nasa_fft.all_refl %>%
+    left_join(plots_merge) %>%
+    select(-PlotName, Plot)
+
+#' Samples table
+                                      
+#' Create FullName as database + sample_name + year
+nasa_fft.all_refl[, FullName := 
+                  paste(ProjectCode, Sample_Name, Sample_Year,
+                             sep = id_separator)]
+check.unique(nasa_fft.all_refl, "FullName")
 
 #' Isolate full sample information
-all.cols <- colnames(fft.refl)
+all.cols <- colnames(nasa_fft.all_refl)
 wl.cols <- sprintf("Wave_%d", 350:2500)
 info.cols <- all.cols[!(all.cols %in% wl.cols)]
-fft.info <- fft.refl[,info.cols, with=F]
+nasa_fft.all <- nasa_fft.all_refl[,info.cols, with=F]
 
-#' Load species information file
-species.info <- data.table(read.csv(PATH.speciesinfo, header=TRUE))
+#' Correct column names
+names_samples <- c("Sample_Name" = "SampleName",
+                   "Sample_Year" = "SampleYear",
+                   "Height" = "CanopyPosition")
 
-#' Merge species information with sample information. NOTE that this excludes
-#' a few datapoints! TODO: Figure out what they are and how to include them.
-setkey(species.info, Label)
-setkey(fft.info, Species)
-fft.infosp <- fft.info[species.info]
+names_specInfo <- c("Instrumentation" = "Instrument",
+                    "Measurement_Type" = "Apparatus",
+                    "Measurement" = "SpectraType")
+
+names_all <- c(names_samples, names_specInfo)
+
+setnames(nasa_fft.all, names(names_all), names_all)
+
+#' Sort out needle age variables
+fixNeedleAge <- function(dat) {
+    age.pine <- c("N", "O")
+    age.conifer <- c("N", 2, 3)
+    out <- dat %>%
+        mutate(NeedleOldNew = ifelse(Age %in% age.pine, Age, NA),
+            NeedleAge = ifelse(Age %in% age.conifer, Age, NA)) %>%
+        mutate(NeedleAge = ifelse(NeedleAge == "N", 1, NeedleAge)) %>%
+        mutate(NeedleAge = as.numeric(NeedleAge))
+    return(out)
+}
+
+nasa_fft.all <- fixNeedleAge(nasa_fft.all)
+
+#' Isolate samples table
+nasa_fft.samples <- nasa_fft.all %>%
+    select(which(colnames(.) %in% columns_samples)) %>%
+    setDT()
+
+samples_merge <- mergeWithSQL(db, "samples", 
+                              nasa_fft.samples, "FullName") %>%
+    select(SampleID, FullName) %>%
+    setDT() %>%
+    setkey(FullName)
+setkey(nasa_fft.all, FullName)
+nasa_fft.all <- samples_merge[nasa_fft.all]
+
+#' Build SpecInfo table
+nasa_fft.specInfo <- nasa_fft.all %>%
+    select(which(colnames(.) %in% columns_specInfo)) %>%
+    mutate(Apparatus = ifelse(Apparatus == "LC",
+                              "Leaf clip",
+                              Apparatus),
+           SpectraType = ifelse(SpectraType == "Reflectance",
+                                "Reflectance",
+                                SpectraType)) %>%
+    setDT()
+
+specinfo_merge <- mergeWithSQL(db, "specInfo", nasa_fft.specInfo) %>%
+    select(SpectraID, SampleID) %>%
+    setDT() %>%
+    setkey(SampleID)
 
 #' Pull out reflectance spectra into its own data.table
-fft.reflspec <- fft.refl[, c("sample_id", wl.cols), with=F]
-oldnames <- colnames(fft.reflspec)[grepl("Wave_", colnames(fft.reflspec))]
-newnames <- gsub("Wave_", "", oldnames)
-setnames(fft.reflspec, oldnames, newnames)
-fft.reflmat <- as.matrix(fft.reflspec[,-1,with=F])
-rownames(fft.reflmat) <- fft.reflspec[,sample_id]
-fft.reflspec <- fft.reflmat
+nasa_fft.refl <- nasa_fft.all_refl %>%
+    left_join(samples_merge) %>%
+    left_join(specinfo_merge) %>%
+    select_(.dots = c("SpectraID", wl.cols)) %>%
+    melt(id.vars = "SpectraID", value.name = "Value") %>%
+    mutate(Wavelength = as.numeric(sub("Wave_", "", variable))) %>%
+    select(-variable)
 
+refl_check <- mergeWithSQL(db, "spectra", nasa_fft.refl, 
+                           return.table = FALSE)
 
-#' Repeat above steps for transmittance, but read in only sample name, year, 
-#' and spectra.
+#' Repeat above steps for transmittance
 PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
-fft.trans <- fread(PATH.trans, header=TRUE, select=c("Sample_Name", "Sample_Year", wl.cols))
-fft.trans[, sample_id := sprintf("FFT_%s_%s", Sample_Name, Sample_Year)]
-fft.transspec <- fft.trans[, c("sample_id", wl.cols), with=F]
-oldnames <- colnames(fft.transspec)[grepl("Wave_", colnames(fft.transspec))]
-newnames <- gsub("Wave_", "", oldnames)
-setnames(fft.transspec, oldnames, newnames)
-fft.transmat <- as.matrix(fft.transspec[,-1,with=F])
-rownames(fft.transmat) <- fft.transspec[,sample_id]
-fft.transspec <- fft.transmat
+nasa_fft.trans_all <- fread(PATH.trans, header=TRUE) %>%
+    mutate(FullName = paste(ProjectCode, Sample_Name, Sample_Year, 
+                              sep = id_separator),
+           ProjectID = ProjectID) %>%
+    setnames(names(names_all), names_all)
 
-#' Tidy up workspace by removing large, unnecessary objects
-rm(list = c("all.cols", "fft.refl", "fft.trans", "fft.info", "fft.reflmat", "fft.transmat"))
+fullnames_present <- tbl(db, "samples") %>%
+    distinct(FullName) %>%
+    collect() %>%
+    .[[1]]
 
-#' Summary of important objects so far:
-#' * `fft.reflspec` -- matrix containing reflectance spectra
-#' * `fft.transspec` -- matrix containing transmittance spectra
-#' * `fft.infosp` -- data.table containing information about each sample.
+nasa_fft.samples_trans <- nasa_fft.trans_all %>%
+    filter(!FullName %in% fullnames_present) %>%
+    left_join(setDT(sites_merge)) %>%
+    left_join(setDT(plots_merge)) %>%
+    left_join(rename(species_merge, Species = FFT_Label)) %>%
+    fixNeedleAge() %>%
+    select(which(colnames(.) %in% columns_samples)) %>% 
+    setDT()
 
+samples_trans_merge <- nasa_fft.samples_trans %>%
+    mergeWithSQL(db, "samples", ., "FullName") %>%
+    select(SampleID, FullName) %>%
+    setDT()
 
-#' # Process chemistry data
-#' Set paths
-PATH.d15N <- file.path(PATH.FFT, "NASA_FFT_d15N_ANALYZED_DATA_UPDATED_4R.csv")
-PATH.lignin <- file.path(PATH.FFT, "NASA_FFT_FIB_LIG_CELL_RESULTS_FINAL_4R.csv")
-PATH.CN <- file.path(PATH.FFT, "NASA_FFT_Project_CN_Data_4R.csv")
-PATH.SLA_LMA <- file.path(PATH.FFT, "NASA_FFT_SLA_LMA_Data_v2_4R_updated_new.csv")
+nasa_fft.trans_all <- nasa_fft.trans_all %>%
+    left_join(samples_trans_merge)
 
-#' Read in data
-fft.d15N <- fread(PATH.d15N, header=TRUE)
-fft.lignin <- fread(PATH.lignin, header=TRUE)
-fft.cn <- fread(PATH.CN, header=TRUE)
-fft.lma <- fread(PATH.SLA_LMA, header=TRUE)
+nasa_fft.specinfo_trans <- nasa_fft.trans_all %>%
+    select(which(colnames(.) %in% columns_specinfo)) %>%
+    mutate(Apparatus = ifelse(Apparatus == "IS", 
+                              "Integrating sphere", 
+                              Apparatus),
+           SpectraType = ifelse(SpectraType == "TRAN",
+                                "Transmittance",
+                                SpectraType)) %>%
+    setDT()
 
-#' Remove data with comments, which usually indicate that there's something 
-#' wrong with the data. TODO: Look more closely into this.
-fft.d15N <- fft.d15N[COMMENTS == ""]
-fft.lignin <- fft.lignin[COMMENTS == ""]
+specinfo_trans_merge <- nasa_fft.specinfo_trans %>%
+    mergeWithSQL(db, "specInfo", .) %>%
+    select(SpectraID, SampleID) %>%
+    setDT() %>%
+    setkey(SampleID)
 
-#' Set negative values of LMA to NA. Negative values make no sense for EWT and 
-#' LMA.
-fft.lma[EWT_g_cm2 < 0, EWT_g_cm2 := NA]
-fft.lma[LMA_g_DW_m2 < 0, LMA_g_DW_m2 := NA]
+nasa_fft.trans <- nasa_fft.trans_all %>%
+    left_join(samples_merge) %>%
+    left_join(specinfo_merge) %>%
+    select_(.dots = c("SpectraID", wl.cols)) %>%
+    melt(id.vars = "SpectraID", value.name = "Value") %>%
+    mutate(Wavelength = as.numeric(sub("Wave_", "", variable))) %>%
+    select(-variable)
 
-#' Extract only the values that we're interested in from each data.table.
-mergeby.lower <- c("Sample_Name", "Sample_Year")
-mergeby.caps <- toupper(mergeby.lower)
-fft.d15N <- fft.d15N[, c(mergeby.caps, "SAMPLE_dN15"), with=F]
-fft.lignin <- fft.lignin[, c(mergeby.caps, "ADF_PERC_DW", "ADL_PERC_DW",
-                             "CELL_PERC_DW"), with=F]
-fft.cn <- fft.cn[, c(mergeby.lower, "Perc_N", "Perc_C", "CNRatio"), with=F]
-fft.lma <- fft.lma[, c(mergeby.lower, "EWT_g_cm2", "LMA_g_DW_m2"), with=F]
+trans_check <- mergeWithSQL(db, "spectra", nasa_fft.trans,
+                           return.table = FALSE)
 
-#' Remove duplicates from each data set by averaging over them. Keeping the 
-#' duplicates in there makes it difficult to eventually merge the data tables.
-remove.duplicates <- function(x){
-    if(is.numeric(x)) return(mean(x, na.rm=TRUE))
-    return(x[1])
-}
-fft.d15N <- fft.d15N[, lapply(.SD, remove.duplicates), by=mergeby.caps]
-check.unique(fft.d15N, mergeby.caps)
-fft.lignin <- fft.lignin[, lapply(.SD, remove.duplicates), by=mergeby.caps]
-check.unique(fft.lignin, mergeby.caps)
-fft.cn <- fft.cn[, lapply(.SD, remove.duplicates), by=mergeby.lower]
-check.unique(fft.cn, mergeby.lower)
-fft.lma <- fft.lma[, lapply(.SD, remove.duplicates), by=mergeby.lower]
-check.unique(fft.lma, mergeby.lower)
+#' Process trait data
+source("process.nasa_fft.traits.R")
+nasa_fft.traits <- fft.chem %>%
+    left_join(tbl(db, "samples") %>% 
+              filter(ProjectID == ProjectID) %>%
+              select(SampleID,
+                     Sample_Name = SampleName, 
+                     Sample_Year = SampleYear) %>%
+              collect() %>%
+              setDT()) %>%
+    select(-Sample_Name, -Sample_Year) %>%
+    melt(id.vars = "SampleID", value.name = "Value") %>%
+    filter(!is.na(Value), !is.na(SampleID)) %>%
+    left_join(tbl(db, "traitInfo") %>%
+              select(TraitID, variable = TraitName) %>%
+              collect() %>%
+              setDT()) %>%
+    select(SampleID, TraitID, Value) %>%
+    setDT()
+ 
+traits_check <- mergeWithSQL(db, "traits", nasa_fft.traits, 
+                             return.table = FALSE)
 
-#' Merge fft data together.
-setkeyv(fft.d15N, mergeby.caps)
-setkeyv(fft.lignin, mergeby.caps)
-setkeyv(fft.cn, mergeby.lower)
-setkeyv(fft.lma, mergeby.lower)
-merge.caps <- merge(fft.d15N, fft.lignin, all=T)
-merge.lower <- merge(fft.cn, fft.lma, all=T)
-setnames(merge.caps, mergeby.caps, mergeby.lower)
-fft.chem <- merge(merge.caps, merge.lower, by=mergeby.lower, all=T)
-check.unique(fft.chem, mergeby.lower)
-
-
-#' Merge chemistry data with `fft.infosp`
-setkeyv(fft.chem, mergeby.lower)
-setkeyv(fft.infosp, mergeby.lower)
-fft.dat.raw <- merge(fft.infosp, fft.chem, all=T)
-
-#` Sort out missing values
-fft.comp <- fft.dat.raw[!is.na(species_scientific)]
-fft.na <- fft.dat.raw[is.na(species_scientific)]
-sample.name.regex <- "^([A-Za-z]+)([0-9]+[B]*)_([A-Za-z]+)_([BMTS]+)([ANO23]{0,1})[SAMP2]*"
-fft.na[, Site := gsub(sample.name.regex, "\\1", Sample_Name)]
-fft.na[, Plot := gsub(sample.name.regex, "\\1\\2", Sample_Name)]
-fft.na[, Age := gsub(sample.name.regex, "\\5", Sample_Name)]
-fft.na[, Height := gsub(sample.name.regex, "\\4", Sample_Name)]
-fft.na[, Species := gsub(sample.name.regex, "\\3", Sample_Name)]
-na.inds <- sapply(fft.na, function(x) all(is.na(x)))
-na.cols <- names(na.inds)[!na.inds]
-fft.na <- fft.na[, na.cols, with=F]
-setkey(fft.na, Species)
-setkey(species.info, Label)
-fft.na2 <- fft.na[species.info]
-in.cols <- intersect(names(fft.na2), names(fft.comp))
-setkeyv(fft.na2, in.cols)
-setkeyv(fft.comp, in.cols)
-fft.dat.raw <- merge(fft.na2, fft.comp, all=T)
-
-#' Correct column names to match `columns.data`.
-oldnames <- c("Sample_Name", "Sample_Year", "Site", "Plot", "Height", "Instrumentation")
-newnames <- c("sample_name", "sample_year", "site", "plot", "canopy_position", "instrument")
-setnames(fft.dat.raw, oldnames, newnames)
-
-#' Individually fix incorrect columns. Start with descriptive variables...
-fft.dat.raw[, project := "NASA_FFT"]
-fft.dat.raw[, sample_ID := paste(project, sample_name, sample_year,
-                                 sep = id_separator)]
-# MD -- Add it to species info file
-fft.dat.raw[,wl.start := 400][,wl.end := 2500]
-
-# TODO: Sort out needle age. Two columns: For pine species, old vs. new. For 
-# spruce species, N, 2, 3+
-age.pine <- c("N", "O")
-age.conifer <- c("N", 2, 3)
-pines <- grepl("pine", fft.dat.raw[,PFT])
-fft.dat.raw[pines & Age %in% age.pine, pine_needle_oldnew := Age]    # Set pine needle status
-fft.dat.raw[!(pines) & Age %in% age.conifer, spruce_needle_age := Age] # Set conifer needle age
-
-#' ...and then move on to quantitative values.
-fft.dat.raw[,leaf_water_content := EWT_g_cm2 * 100^2]  # Convert to g m-2
-fft.dat.raw[,EWT_g_cm2 := NULL]    # Remove unused column
-setnames(fft.dat.raw, "LMA_g_DW_m2", "LMA")    # No conversion
-setnames(fft.dat.raw, "Perc_C", "leafC")      # No conversion
-setnames(fft.dat.raw, "Perc_N", "leafN")      # No conversion
-setnames(fft.dat.raw, "CNRatio", "c2n_leaf")  # No conversion
-# No protein
-setnames(fft.dat.raw, "CELL_PERC_DW", "leaf_cellulose_percent")
-setnames(fft.dat.raw, "ADL_PERC_DW", "leaf_lignin_percent")
-# No starch
-setnames(fft.dat.raw, "ADF_PERC_DW", "leaf_fiber_percent")
-setnames(fft.dat.raw, "SAMPLE_dN15", "leaf_deltaN15")     # TODO: Not sure about this unit
-
-#' Add in remaining information as a long string in "comments" column
-fft.dat.raw[, comments := NA]
-main.log <- colnames(fft.dat.raw) %in% columns.data
-main.cols <- colnames(fft.dat.raw)[main.log]
-##comment.cols <- colnames(fft.dat.raw)[!main.log]
-##comments <- fft.dat.raw[, paste(comment.cols, sep="__"), with=F)
-##fft.dat.raw[, comments := paste(comment.cols, sep="__")]
-
-#' Subset columns to keep.
-fft.dat <- fft.dat.raw[, main.cols, with=F]
-print.status(fft.dat)
-
-#' Fix species
-source("fix.species.R")
-fft.dat <- fft.dat[-grep("unk", species_scientific, ignore.case=TRUE),]
-fft.dat <- fix.species(fft.dat)
-nasa_fft <- list("traits" = fft.dat,
-                 "reflectance" = fft.reflspec,
-                 "transmittance" = fft.transspec)
-saveRDS(nasa_fft, file = "processed-spec-data/nasa_fft.rds")
