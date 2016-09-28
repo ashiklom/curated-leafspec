@@ -48,7 +48,7 @@ replace.na <- function(column, na.val = -999){
 id_separator <- "|"
 
 #' Define common variables and their units:
-columns_traits<- c(
+columns_traitdata<- c(
         "leaf_nlayers",   # Leaf structure parameter from constrained PROSPECT inversion
         "leaf_chlorophyll_a",      # Chlorophyll a concentration (ug cm-2)
         "leaf_chlorophyll_b",      # Chlorophyll b concentration (ug cm-2)
@@ -85,14 +85,6 @@ columns_samples <- c('SampleID',
                      'PlotID',
                      'Comments')
 
-columns_specinfo <- c('SpectraID',
-                      'SampleID',
-                      'SpectraType',
-                      'Instrument',
-                      'Calibration',
-                      'Apparatus',
-                      'Comments')
-
 columns_traits <- c('ObservationID',
                     'SampleID',
                     'TraitID',
@@ -100,6 +92,7 @@ columns_traits <- c('ObservationID',
                     'Comments')
 
 columns_specInfo <- c('SpectraID',
+                      'SpectraName',
                       'SampleID',
                       'SpectraType',
                       'Instrument',

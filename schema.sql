@@ -52,6 +52,7 @@ CREATE TABLE traits(
 
 CREATE TABLE specInfo(
     SpectraID INTEGER PRIMARY KEY,
+    SpectraName TEXT,
     SampleID INTEGER,
     SpectraType TEXT,
     Instrument TEXT,

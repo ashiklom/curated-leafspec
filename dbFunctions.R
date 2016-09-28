@@ -30,6 +30,7 @@ mergeWithSQL <- function(db, table_name, input_data, searchkey = NULL,
         new_input <- new_input %>%
             filter(!(.[[searchkey]] %in% sql_keys))
     }
+    setDT(new_input)
     insert <- db_insert_into(db$con, table_name, new_input)
     stopifnot(insert)
     if (!return.table) return(insert)
@@ -38,11 +39,12 @@ mergeWithSQL <- function(db, table_name, input_data, searchkey = NULL,
             out_table <- tbl(db, table_name) %>%
                 select_(1, searchkey) %>%
                 collect() %>%
-                left_join(input_data, by = searchkey)
+                right_join(input_data)
         } else {
             out_table <- tbl(db, table_name) %>%
                 collect()
         }
+        setDT(out_table)
         return(out_table)
     }
 }
