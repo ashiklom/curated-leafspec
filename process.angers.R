@@ -24,8 +24,14 @@ angers.chem <- angers.chem.raw[, lapply(.SD, replace.na)]
 #' Projects table
 projectcode <- "ANGERS"
 projectname <- "Angers, France spectra from INRA"
+project_reference <- "Feret, J.-B., François, C., Asner, G.P., Gitelson, A.A., Martin, R.E., Bidel, L.P.R., Ustin, S.L., le Maire, G., Jacquemoud, S., 2008. PROSPECT-4 and 5: Advances in the leaf optical properties model separating photosynthetic pigments. Remote Sensing of Environment 112, 3030–3043."
+project_doi <- "doi:10.1016/j.rse.2008.02.012"
+project_poc <- "Feret, Jean-Baptiste <feretjb@cesbio.cnes.fr>"
 angers.project <- tibble(ProjectCode = projectcode,
-                         ProjectName = projectname) %>%
+                         ProjectName = projectname,
+                         ProjectReference = project_reference,
+                         ProjectReferenceDOI = project_doi,
+                         PointOfContact = project_poc) %>%
     mergeWithSQL(db, "projects", ., "ProjectName")
 projectID <- angers.project %>%
     filter(ProjectName == projectname) %>%
@@ -35,22 +41,16 @@ projectID <- angers.project %>%
 #' Sites table
 sitename <- "INRA"
 sitedesc <- "INRA Centre in Angers, France"
+site_lat <- 47.47
+site_lon <- -0.56
 angers.site <- tibble(
     SiteName = sitename,
-    SiteDescription = sitedesc) %>%
+    SiteDescription = sitedesc,
+    SiteLatitude = site_lat,
+    SiteLongitude = site_lon) %>%
     mergeWithSQL(db, "sites", ., "SiteName")
 siteID <- filter(angers.site, SiteName == sitename) %>% 
     select(SiteID) %>% .[[1]]
-
-angers.plot <- tibble(
-    PlotName = sitename,
-    PlotDescription = sitedesc,
-    SiteID = siteID,
-    Latitude = 47.47,
-    Longitude = -0.56) %>%
-    mergeWithSQL(db, "plots", ., "PlotName")
-plotID <- filter(angers.plot, PlotName == sitename) %>%
-    select(PlotID) %>% .[[1]]
 
 #' Species table
 custom_matches <- c("Acer negundo 'Variegatum'" = 24,  

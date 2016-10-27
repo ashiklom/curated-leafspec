@@ -22,42 +22,29 @@ oldnames <- c("English Name", "Latin Name", "Plant Type")
 newnames <- c("common_name", "latin_name", "plant_type_lopex")
 setnames(lopex.chem, oldnames, newnames)
 
-#' Projects table
-projectcode <- "LOPEX"
-projectname <- "Leaf Optical Properties Experiment 93"
-lopex.project <- tibble(ProjectCode = projectcode,
-                         ProjectName = projectname) %>%
-    mergeWithSQL(db, "projects", ., "ProjectName")
-projectID <- lopex.project %>%
-    filter(ProjectName == projectname) %>%
-    select(ProjectID) %>%
-    .[[1]]
+#' Set global values (see Google sheets)
+project_code <- "LOPEX"
+project_ID <- getProjectID(project_code)
+method_id <- 3
 
-#' Sites and plots tables
+#' Sites table
 sitename <- "Ispra"
 sitedesc <- "Joint Research Center, Ispra, Italy"
+site_lat <- 45.803
+site_lon <- 8.630
 lopex.site <- tibble(
     SiteName = sitename,
-    SiteDescription = sitedesc) %>%
+    SiteDescription = sitedesc,
+    SiteLatitude = site_lat,
+    SiteLongitude = site_lon) %>%
     mergeWithSQL(db, "sites", ., "SiteName")
 siteID <- filter(lopex.site, SiteName == sitename) %>% 
     select(SiteID) %>% .[[1]]
 
-lopex.plot <- tibble(
-    PlotName = sitename,
-    PlotDescription = sitedesc,
-    SiteID = siteID,
-    Latitude = 45.8039263,
-    Longitude = 8.6296884) %>%
-    mergeWithSQL(db, "plots", ., "PlotName")
-plotID <- filter(lopex.plot, PlotName == sitename) %>%
-    select(PlotID) %>% .[[1]]
-
-
 #' Assign individual ID to each spectrum and leaf.
 lopex.chem <- lopex.chem %>%
     mutate(ProjectName = projectname,
-           ProjectID = projectID,
+           ProjectID = project_ID,
            sample_year = 1993)
 
 #' Fill in species names and assign ID to each leaf and spectrum.
@@ -114,18 +101,17 @@ lopex.chem <- lopex.chem %>%
     left_join(lopex.species) %>%
     select(-ScientificName, -latin_name, -common_name)
 
-lopex.chem[, FullName := paste(projectcode, sample_name, sample_year,
+lopex.chem[, FullName := paste(project_code, sample_name, sample_year,
                                sep = id_separator)]
 
 #' Samples table
 lopex.samples <- lopex.chem %>%
     rename(SampleYear = sample_year,
            SampleName = sample_name) %>%
-    mutate(PlotID = plotID, 
-           SiteID = siteID) %>%
+    mutate(SiteID = siteID) %>%
     distinct_(.dots = columns_samples[columns_samples %in% colnames(.)]) %>%
     mergeWithSQL(db, "samples", ., "FullName") %>%
-    filter(ProjectID == projectID) %>%
+    filter(ProjectID == project_ID) %>%
     distinct(SampleID, FullName) %>%
     collect() %>%
     setDT()
@@ -139,7 +125,7 @@ lopex.uniqspec <- lopex.chem %>%
     distinct(SampleID, Refl_file, Trans_file, spec_id) %>%
     melt(id.vars = c('SampleID', 'spec_id')) %>%
     mutate(SpectraType = vardict[variable], 
-           SpectraName = paste(projectcode,
+           SpectraName = paste(project_code,
                                spec_id,
                                substr(variable, 0, 1),
                                sep='_'))

@@ -17,6 +17,8 @@ CREATE TABLE sites(
     SiteID INTEGER PRIMARY KEY,
     SiteName TEXT,
     SiteDescription TEXT,
+    SiteLatitude REAL,
+    SiteLongitude REAL,
     Comments);
 
 CREATE TABLE plots(
@@ -24,24 +26,9 @@ CREATE TABLE plots(
     SiteID INTEGER,
     PlotName TEXT,
     PlotDescription TEXT,
-    Latitude REAL,
-    Longitude REAL,
+    PlotLatitude REAL,
+    PlotLongitude REAL,
     Comments);
-
-CREATE TABLE projects(
-    ProjectID INTEGER PRIMARY KEY,
-    ProjectName TEXT,
-    ProjectCode TEXT,
-    Affiliation TEXT,
-    PointOfContact TEXT,
-    Comments TEXT);
-
-CREATE TABLE traitInfo(
-    TraitID INTEGER PRIMARY KEY,
-    TraitName TEXT,
-    TraitDescription TEXT,
-    Unit TEXT,
-    Comments TEXT);
 
 CREATE TABLE traits(
     ObservationID INTEGER PRIMARY KEY,
@@ -53,9 +40,9 @@ CREATE TABLE traits(
 CREATE TABLE specInfo(
     SpectraID INTEGER PRIMARY KEY,
     SpectraName TEXT,
-    SampleID INTEGER,
     SpectraType TEXT,
-    Instrument TEXT,
+    SampleID INTEGER,
+    InstrumentID TEXT,
     Calibration TEXT,
     Apparatus TEXT,
     Comments TEXT);

@@ -8,24 +8,11 @@
 #' Source common script.
 source("common.R")
 
-#' Create entry in `projects` table and grab projectID
-ProjectCode <- "NASA_FFT"
-
-nasa_fft.projects <- tibble(
-    ProjectName = "NASA Forest Functional Types",
-    ProjectCode = ProjectCode,
-    Affiliation = "FERST - University of Wisconsin Madison",
-    PointOfContact = "Serbin, Shawn")
-
-insert_projects <- mergeWithSQL(db, "projects", 
-                                nasa_fft.projects,
-                                "ProjectName")
-
-projectID <- tbl(db, "projects") %>% 
-    filter(ProjectName == nasa_fft.projects[["ProjectName"]]) %>%
-    select(ProjectID) %>%
-    collect() %>%
-    .[[1]]
+#' Global values (check these against Google Sheet)
+project_code <- "NASA_FFT"
+project_ID <- getProjectID(project_code)
+method_id_refl <- 1
+method_id_trans <- 2
 
 #' Set paths for FFT data
 PATH.FFT <- file.path("raw","NASA_FFT")
@@ -59,7 +46,7 @@ PATH.refl <- file.path(PATH.spec, "NASA_FFT_LC_Refl_Spectra_v4.csv")
 
 #' Load reflectance data 
 nasa_fft.all_refl <- fread(PATH.refl, header=TRUE) %>%
-    .[, c("ProjectCode", "ProjectID") := list(ProjectCode, projectID)]
+    .[, c("ProjectCode", "ProjectID") := list(project_code, project_ID)]
 
 #' Add species ID
 nasa_fft.all_refl <- nasa_fft.all_refl %>%
@@ -96,7 +83,7 @@ nasa_fft.all_refl <- nasa_fft.all_refl %>%
                                       
 #' Create FullName as database + sample_name + year
 nasa_fft.all_refl <- nasa_fft.all_refl %>%
-    .[, FullName := paste(ProjectCode, Sample_Name, Sample_Year,
+    .[, FullName := paste(project_code, Sample_Name, Sample_Year,
                              sep = id_separator)] %>%
     .[, SpectraName := paste(FullName, "R", sep = "_")]
 check.unique(nasa_fft.all_refl, "FullName")
@@ -167,9 +154,9 @@ refl_check <- nasa_fft.all_refl %>%
 #' Repeat above steps for transmittance
 PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 nasa_fft.trans_all <- fread(PATH.trans, header=TRUE) %>%
-    .[, FullName := paste(ProjectCode, Sample_Name, Sample_Year, 
+    .[, FullName := paste(project_code, Sample_Name, Sample_Year, 
                               sep = id_separator),] %>%
-    .[, ProjectID := projectID] %>%
+    .[, ProjectID := project_ID] %>%
     .[, SpectraName := paste(FullName, "T", sep = "_")] %>%
     setnames(names(names_all), names_all)
 
@@ -221,7 +208,7 @@ trans_check <- mergeWithSQL(db, "spectra", nasa_fft.trans,
 source("process.nasa_fft.traits.R")
 nasa_fft.traits <- fft.chem %>%
     left_join(tbl(db, "samples") %>% 
-              filter(ProjectID == projectID) %>%
+              filter(ProjectID == project_ID) %>%
               select(SampleID,
                      Sample_Name = SampleName, 
                      Sample_Year = SampleYear) %>%

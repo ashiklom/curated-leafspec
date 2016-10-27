@@ -16,7 +16,10 @@ source("common.R")
                     #host = host)
 
 
-bety_species <- fread("raw/bety.species.csv")
+bety_species <- fread("raw/bety.species.csv") %>%
+    rename(SpeciesID = id,
+           ScientificName = scientificname, 
+           CommonName = commonname)
 
 cp <- copy_to(db, bety_species, "species", temporary = FALSE,
               unique_indexes = list("id"))

@@ -1,16 +1,66 @@
-library(readxl)
-library(dtplyr)
-library(dplyr)
-library(reshape2)
-
 source("common.R")
+library(readxl)
+library(lubridate)
 
-# MV
+#' Projects table
+projectcode <- "Yang_et_al"
+
+projectname <- "Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests"
+
+projectreference <- "Yang, X., Tang, J., Mustard, J.F., Wu, J., Zhao, K., Serbin, S., Lee, J.-E., 2016. Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests. Remote Sensing of Environment 179, 1–12."
+
+project_doi <- '10.1016/j.rse.2016.03.026'
+
+projectID <- tibble(ProjectCode = projectcode,
+                         ProjectName = projectname) %>%
+    mergeWithSQL(db, "projects", ., "ProjectName") %>%
+    filter(ProjectName == projectname) %>%
+    select(ProjectID) %>%
+    .[[1]]
+
+# MV (Martha's Vineyard) -- 41.362, -70.578
 # A,B,C indicate three individuals
 # U,L mean upper and lower
 # N,S mean leaves were on the north and south part of the canopy
 # 1,2,3 mean different leaves
 # All trees are Red Oak
+
+#' Sites table
+mv_name <- "Martha's Vineyard"
+mv_desc <- "Martha's Vineyard, MA, USA"
+mv_lat <- 41.362
+mv_lon <- -70.578
+mv_site <- tibble(
+    SiteName = mv_name,
+    SiteDescription = mv_desc,
+    SiteLatitude = mv_lat,
+    SiteLongitude = mv_lon) %>%
+    mergeWithSQL(db, "sites", ., "SiteName")
+mv_siteID <- filter(mv_site, SiteName == sitename) %>% 
+    select(SiteID) %>% .[[1]]
+
+#' Species table
+mv_speciesID <- 1170    # Quercus rubra
+
+sample_year <- 2011
+sample_name <- "MV"
+
+fname <- sprintf("raw/Yang_etal/%d_%s_leaftraits_forShawn.xlsx", 
+                 sample_year, sample_site)
+dat_list <- list()
+sample_names <- character()
+
+# Load trait data
+for (i in seq_along(traits)){
+    dat <- read_excel(path = fname, sheet = traits[i]) %>% 
+        .[colnames(.) != ""] %>%
+        setDT
+    sample_names <- union(sample_names, colnames(dat)[-1])
+    setnames(dat, 1, "DOY")
+    dat <- dat[, lapply(.SD, as.numeric)][!is.na(DOY)]
+    dat[, trait := names(traits)[i]]
+    dat_list[[i]] <- dat
+}
 
 # HF
 # RO -- Red Oak
@@ -24,10 +74,10 @@ source("common.R")
 traits <- c('leaf_chlorophyll_a' = 'Chla',
             'leaf_chlorophyll_b' = 'Chlb',
             'leaf_chlorophyll_total' = 'TotChl',
-            'LMA' = 'LMA',
+            'leaf_mass_per_area' = 'LMA',
             'leaf_carotenoid_total' = 'Car',
-            'leafC' = 'TotC',
-            'leafN' = 'TotN')
+            'leaf_C_percent' = 'TotC',
+            'leaf_N_percent' = 'TotN')
 ntraits <- length(traits)
 
 readYang <- function(sample_year, sample_site) {
