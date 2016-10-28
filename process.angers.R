@@ -79,6 +79,7 @@ angers.chem <- angers.chem %>%
 
 #' Read in reflectance and transmittance data into separate matrices.
 message("Reading ANGERS spectra...")
+source("read_spectrum.R")
 setkey(angers.chem, FullName)
 
 refl_list <- list()
