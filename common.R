@@ -65,3 +65,7 @@ wlmat2list <- function(wlmat) {
         lapply(specobs)
     return(out)
 }
+
+rds_name <- function(projectcode) {
+    sprintf("processed-spec-data/%s.rds", projectcode)
+}
