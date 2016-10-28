@@ -2,9 +2,42 @@
 #' title: Process ANGERS data
 #' author: Alexey Shiklomanov
 #' ---
+#' 
+# projectname <- "Angers, France spectra from INRA"
+# project_reference <- "Feret, J.-B., François, C., Asner, G.P., Gitelson, A.A., Martin, R.E., Bidel, L.P.R., Ustin, S.L., le Maire, G., Jacquemoud, S., 2008. PROSPECT-4 and 5: Advances in the leaf optical properties model separating photosynthetic pigments. Remote Sensing of Environment 112, 3030–3043."
+# project_doi <- "doi:10.1016/j.rse.2008.02.012"
+# project_poc <- "Feret, Jean-Baptiste <feretjb@cesbio.cnes.fr>"
+# 
+# sitename <- "INRA"
+# sitedesc <- "INRA Centre in Angers, France"
+# site_lat <- 47.47
+# site_lon <- -0.56
+
+# # Species table
+# custom_matches <- c("Acer negundo 'Variegatum'" = 24,  
+#                     "Calicarpa bodinieri" = 37153,
+#                     "Cornus alba 'Elegantissima'" = 384,
+#                     "Corylus maxima 'Purpurea'" = 47278,
+#                     "Euonymus fortunei 'Emerald'n' Gold'" = 27512,
+#                     "Euonymus fortunei 'Ovatus Aureus'" = 27512,
+#                     "Euonymus fortunei 'Silver Queen'" = 27512,
+#                     "Euonymus fortunei Hand.-Mazz" = 27512,
+#                     "Hedera helix 'Dentata Variegata'" = 10953,
+#                     "Hydrangea macrophylla cv" = 25737,
+#                     "Ilex aquifolium 'Golden Milkboy'" = 31762,
+#                     "Juglans regia" = 40152,
+#                     "Prunus laurocerasus 'Otto Luyken'" = 45937,
+#                     "Rhododendron calophytum" = 18349,
+#                     "Robinia pseudoacacia 'Frisia'" = 1215,
+#                     "Salix atrocinerea" = 1246,
+#                     "Schefflera arboricola 'Gold Capella'" = 44012,
+#                     "Viburnum plicatum 'Lanarth'" = 21815,
+#                     "Vitis vinifera L" = 2851,
+#                     "Weigela florida 'Foliis Purpureis'" = 27891)
 
 #' Setup
 source("common.R")
+projectcode <- "ANGERS"
 
 #' Set paths
 PATH.ANGERS <- file.path("raw", "ANGERS")
@@ -14,82 +47,9 @@ PATH.chem <- file.path(PATH.ANGERS, "LDB_angers2003.csv")
 #' Load chemistry data.
 angers.chem.raw <- fread(PATH.chem, header=TRUE)
 
-#' Remove spaces from certain names to make it easier to work with.
-oldnames <- c("English Name", "Latin Name", "Plant Type")
-newnames <- c("common_name", "latin_name", "plant_type_angers")
-setnames(angers.chem.raw, oldnames, newnames)
+setnames(angers.chem.raw, "Latin Name", "RawSpecies")
 
 angers.chem <- angers.chem.raw[, lapply(.SD, replace.na)]
-
-#' Projects table
-projectcode <- "ANGERS"
-projectname <- "Angers, France spectra from INRA"
-project_reference <- "Feret, J.-B., François, C., Asner, G.P., Gitelson, A.A., Martin, R.E., Bidel, L.P.R., Ustin, S.L., le Maire, G., Jacquemoud, S., 2008. PROSPECT-4 and 5: Advances in the leaf optical properties model separating photosynthetic pigments. Remote Sensing of Environment 112, 3030–3043."
-project_doi <- "doi:10.1016/j.rse.2008.02.012"
-project_poc <- "Feret, Jean-Baptiste <feretjb@cesbio.cnes.fr>"
-angers.project <- tibble(ProjectCode = projectcode,
-                         ProjectName = projectname,
-                         ProjectReference = project_reference,
-                         ProjectReferenceDOI = project_doi,
-                         PointOfContact = project_poc) %>%
-    mergeWithSQL(db, "projects", ., "ProjectName")
-projectID <- angers.project %>%
-    filter(ProjectName == projectname) %>%
-    select(ProjectID) %>%
-    .[[1]]
-
-#' Sites table
-sitename <- "INRA"
-sitedesc <- "INRA Centre in Angers, France"
-site_lat <- 47.47
-site_lon <- -0.56
-angers.site <- tibble(
-    SiteName = sitename,
-    SiteDescription = sitedesc,
-    SiteLatitude = site_lat,
-    SiteLongitude = site_lon) %>%
-    mergeWithSQL(db, "sites", ., "SiteName")
-siteID <- filter(angers.site, SiteName == sitename) %>% 
-    select(SiteID) %>% .[[1]]
-
-#' Species table
-custom_matches <- c("Acer negundo 'Variegatum'" = 24,  
-                    "Calicarpa bodinieri" = 37153,
-                    "Cornus alba 'Elegantissima'" = 384,
-                    "Corylus maxima 'Purpurea'" = 47278,
-                    "Euonymus fortunei 'Emerald'n' Gold'" = 27512,
-                    "Euonymus fortunei 'Ovatus Aureus'" = 27512,
-                    "Euonymus fortunei 'Silver Queen'" = 27512,
-                    "Euonymus fortunei Hand.-Mazz" = 27512,
-                    "Hedera helix 'Dentata Variegata'" = 10953,
-                    "Hydrangea macrophylla cv" = 25737,
-                    "Ilex aquifolium 'Golden Milkboy'" = 31762,
-                    "Juglans regia" = 40152,
-                    "Prunus laurocerasus 'Otto Luyken'" = 45937,
-                    "Rhododendron calophytum" = 18349,
-                    "Robinia pseudoacacia 'Frisia'" = 1215,
-                    "Salix atrocinerea" = 1246,
-                    "Schefflera arboricola 'Gold Capella'" = 44012,
-                    "Viburnum plicatum 'Lanarth'" = 21815,
-                    "Vitis vinifera L" = 2851,
-                    "Weigela florida 'Foliis Purpureis'" = 27891)
-
-sql_species <- tbl(db, "species") %>%
-    distinct(id, scientificname) %>%
-    collect() %>%
-    rename(SpeciesID = id, ScientificName = scientificname) %>%
-    setDT()
-
-angers.species <- angers.chem %>%
-    mutate(ScientificName = gsub("(.*) L\\..*", "\\1", latin_name)) %>%
-    distinct(ScientificName, latin_name) %>%
-    left_join(sql_species) %>%
-    mutate(SpeciesID = ifelse(is.na(SpeciesID),
-                              custom_matches[ScientificName],
-                              SpeciesID)) %>%
-    filter(!is.na(SpeciesID)) %>%
-    setDT() %>%
-    setkey(latin_name)
 
 #' Assign individual ID to each spectrum and leaf.
 species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* ([[:alpha:]]{3})[[:alpha:]]* .*"
@@ -106,81 +66,36 @@ newnames <- c("leaf_nlayers",
               "leaf_anthocyanin_total")
 
 angers.chem <- angers.chem %>%
-    .[, ProjectCode := "ANGERS"] %>%
-    .[, ProjectID := projectID] %>%
+    .[, Project := projectcode] %>%
     .[, SampleYear := 2003] %>%
     .[, SampleName := sprintf("%s_%s",
-                               gsub(species.rxp, "\\1-\\2", latin_name),
+                               gsub(species.rxp, "\\1-\\2", RawSpecies),
                                gsub(file.rxp, "\\1", Refl_file))] %>%
-    .[, FullName := paste(ProjectCode, SampleName, SampleYear,
+    .[, FullName := paste(Project, SampleName, SampleYear,
                            sep = id_separator)] %>%
-    left_join(angers.species) %>%
-    select(-ScientificName, -latin_name, -common_name) %>%
     setnames(oldnames, newnames) %>%
     .[, leaf_mass_per_area := LMA * 10000] %>%
     .[, leaf_water_content := EWT * 10000]
 
-#' Samples table
-angers.samples <- angers.chem %>%
-    .[, PlotID := plotID] %>%
-    .[, SiteID := siteID] %>%
-    distinct_(.dots = 
-                columns_samples[columns_samples %in% colnames(.)]) %>%
-    mergeWithSQL(db, "samples", ., "FullName") %>%
-    filter(ProjectID == projectID) %>%
-    distinct(SampleID, FullName) %>%
-    collect() %>%
-    setDT()
-
-#' Spectra info table
-vardict <- c("Refl_file" = "Reflectance",
-             "Trans_file" = "Transmittance")
-
-angers.uniqspec <- angers.chem %>%
-    left_join(angers.samples) %>%
-    .[, spec_id := gsub(".txt", "", Refl_file)] %>%
-    distinct(SampleID, Refl_file, Trans_file, spec_id) %>%
-    melt(id.vars = c('SampleID', 'spec_id')) %>%
-    mutate(SpectraType = vardict[variable], 
-           SpectraName = paste(projectcode,
-                               spec_id,
-                               substr(variable, 0, 1),
-                               sep='_'))
-
-specinfo_check <- angers.uniqspec %>%
-    mergeWithSQL(db, "specInfo", ., 'SpectraName')
-
-angers.specinfo <- tbl(db, "specInfo") %>%
-    filter(SampleID %in% angers.samples[['SampleID']]) %>%
-    distinct(SpectraID, SampleID, SpectraName) %>%
-    collect() %>%
-    left_join(angers.uniqspec)
-
 #' Read in reflectance and transmittance data into separate matrices.
 message("Reading ANGERS spectra...")
-pb <- txtProgressBar(1, nrow(angers.specinfo), style = 3)
-for(i in 1:nrow(angers.specinfo)){
-    spec <- file.path(PATH.spec, angers.specinfo[['value']][i]) %>%
-        fread() %>%
-        rename(Wavelength = V1, Value = V2) %>%
-        mutate(SpectraID = angers.specinfo[['SpectraID']][i]) %>%
-        mergeWithSQL(db, 'spectra', ., 'SpectraID', return.table = FALSE)
-    setTxtProgressBar(pb, i)
+setkey(angers.chem, FullName)
+
+refl_list <- list()
+trans_list <- list()
+
+for (ID in angers.chem[, unique(FullName)]) {
+    refl_files <- angers.chem[ID, Refl_file]
+    refl_files_full <- file.path(PATH.spec, refl_files)
+    refl_list[[ID]] <- read_spectrum(refl_files_full)
+    trans_files <- angers.chem[ID, Trans_file]
+    trans_files_full <- file.path(PATH.spec, trans_files)
+    trans_list[[ID]] <- read_spectrum(trans_files_full)
 }
-close(pb)
 
-#' Traits table
-traits_check <- angers.chem %>%
-    left_join(angers.samples) %>%
-    select_(.dots = c('SampleID', newnames)) %>%
-    melt(id.vars = 'SampleID', value.name = "Value", 
-         variable.name = "TraitName") %>%
-    left_join(tbl(db, "traitInfo") %>% 
-              distinct(TraitName, TraitID) %>%
-              collect() %>%
-              setDT()) %>%
-    select(-TraitName) %>%
-    setDT() %>%
-    filter(!is.na(Value)) %>%
-    mergeWithSQL(db, "traits", ., "SampleID", return.table = FALSE)
+angers.data <- angers.chem[!duplicated(FullName)] %>%
+    .[, Reflectance := refl_list[FullName]] %>%
+    .[, Transmittance := trans_list[FullName]] %>%
+    subToCols()
 
+saveRDS(angers.data, file = "processed-spec-data/angers.rds")

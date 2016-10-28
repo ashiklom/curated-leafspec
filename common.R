@@ -1,11 +1,15 @@
 #' Load packages
 suppressPackageStartupMessages({
-    source("dbFunctions.R")
+    library(dtplyr)
+    library(data.table)
+    library(dplyr)
     library(reshape2)
+    library(specobs)
     library(googlesheets)
 })
 
-db <- src_sqlite("specdb.sqlite")
+#' Load tables from Google Sheets
+
 
 #' Small function to check for values in data.table based on column.
 #' Mainly used to make sure the sample_id is actually unique.
@@ -28,24 +32,20 @@ replace.na <- function(column, na.val = -999){
 
 id_separator <- "|"
 
-#' Define common variables and their units:
-trait_names <- tbl(db, "traitInfo") %>%
-    distinct(TraitName) %>%
-    collect() %>%
+gs_main <- gs_title("metadata")
+metadata <- gs_read(gs_main, ws = "metadata_columns") %>% 
+    select(Column) %>% 
     .[[1]]
+traits <- gs_read(gs_main, "traitInfo") %>% 
+    select(TraitName) %>% 
+    .[[1]]
+spec_cols <- c("Reflectance", "Transmittance")
 
-columns_samples <- tbl(db, 'samples') %>% tbl_vars()
-columns_traits <- tbl(db, 'traits') %>% tbl_vars()
-columns_specInfo <- tbl(db, 'specInfo') %>% tbl_vars()
-columns_spectra <- tbl(db, 'spectra') %>% tbl_vars()
-columns_sites <- tbl(db, 'sites') %>% tbl_vars()
-columns_plots <- tbl(db, 'plots') %>% tbl_vars()
+all_cols <- c(metadata, traits, spec_cols)
 
-#' Other functions
-getProjectID <- function(project_code) {
-    tbl(db, "projects") %>%
-        filter(ProjectCode == project_code) %>%
-        select(ProjectID) %>%
-        .[[1]]
+subToCols <- function(dat) {
+    cnames_dat <- colnames(dat)
+    cnames <- all_cols[all_cols %in% cnames_dat]
+    out <- dat[, cnames, with = FALSE]
+    return(out)
 }
-
