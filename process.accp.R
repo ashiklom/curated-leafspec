@@ -69,7 +69,7 @@ for (f in spec_files){
         lapply(function(x) cbind("Wavelength" = wl, x)) %>%
         lapply(specobs)
     PA_list[ids] <- datlist %>%
-        sapply(function(x) ifelse(any(x[,-1] > 1), "PA", NA))
+        sapply(function(x) ifelse(any(x[,-1] > 0.9), "PA", NA))
     dry_list[ids] <- dry
     refl_list[ids] <- datlist
 }
