@@ -52,6 +52,7 @@ spec_path <- file.path(accp_path, "leafspec")
 spec_files <- list.files(spec_path, "sp.dat$")
 refl_list <- list()
 dry_list <- character()
+PA_list <- character()
 for (f in spec_files){
     dry <- "fresh"
     if (grepl("_d_sp.dat", f)) dry <- "dry"
@@ -67,6 +68,8 @@ for (f in spec_files){
         "names<-"(ids) %>%
         lapply(function(x) cbind("Wavelength" = wl, x)) %>%
         lapply(specobs)
+    PA_list[ids] <- datlist %>%
+        sapply(function(x) ifelse(any(x[,-1] > 1), "PA", NA))
     dry_list[ids] <- dry
     refl_list[ids] <- datlist
 }
@@ -76,6 +79,7 @@ keep_names <- intersect(names(refl_list), traits_dat_sp[, SampleName])
 traits_dat <- traits_dat_sp[SampleName %in% keep_names] %>%
     .[, Reflectance := refl_list[SampleName]] %>%
     .[, FreshDry := dry_list[SampleName]] %>%
+    .[, SpecialSpec := PA_list[SampleName]] %>%
     subToCols()
 
 saveRDS(traits_dat, file = "processed-spec-data/accp.rds")

@@ -49,3 +49,19 @@ subToCols <- function(dat) {
     out <- dat[, cnames, with = FALSE]
     return(out)
 }
+
+mat2list <- function(mat) {
+    cnames <- colnames(mat)
+    mlist <- split(mat, rep(1:ncol(mat), each = nrow(mat))) %>%
+        "names<-"(cnames)
+    return(mlist)
+}
+
+wlmat2list <- function(wlmat) {
+    wl <- wlmat[,1]
+    mat <- wlmat[,-1]
+    out <- mat2list(mat) %>%
+        lapply(function(x) cbind("Wavelength" = wl, x)) %>%
+        lapply(specobs)
+    return(out)
+}
