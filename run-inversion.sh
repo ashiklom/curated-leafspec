@@ -7,4 +7,5 @@
 #$ -pe omp 5
 #$ -V
 
+mkdir -p logs
 Rscript invert.R $ID

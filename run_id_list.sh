@@ -1,7 +1,7 @@
 #!/bin/bash
 
-file=${1:-all_ids.txt}
+file=${1:-'all_ids.txt'}
 
 while read l; do
-    qsub -N $1 -v ID=\'$l\' run-inversion.sh
+    qsub -N $l -v ID=\'$l\' run-inversion.sh
 done < $file

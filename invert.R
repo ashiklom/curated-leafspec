@@ -6,6 +6,7 @@ library(data.table)
 library(specobs)
 
 id_separator <- "|"
+outdir <- "raw_output"
 
 invert.id <- function(id, version=5, ...){
     sep <- paste0("\\", id_separator)
@@ -89,7 +90,7 @@ invert.id <- function(id, version=5, ...){
     return(out)
 }
 
-dir.create("raw_output", showWarnings = FALSE)
+dir.create(outdir, showWarnings = FALSE)
 
 id <- commandArgs(trailingOnly=TRUE)
 if (length(id) < 1){
@@ -120,10 +121,11 @@ if (length(id) < 1){
             )
 
 }
+
 for (ID in id) {
     results <- invert.id(ID)
     if (!is.null(results)) {
-        saveRDS(results, file = sprintf("raw_output/%s.rds", ID))
+        saveRDS(results, file = sprintf("%s/%s.rds", outdir, ID))
         write(ID, file = "finished.txt", append = TRUE)
     } else {
         message(sprintf("Results were NULL for %s", ID))
