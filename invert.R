@@ -1,7 +1,13 @@
 # Perform a single inversion as a function of sample ID
-source("common.R")
+library(PEcAnRTM)
+library(dtplyr)
+library(dplyr)
+library(data.table)
+library(specobs)
+
+id_separator <- "|"
+
 invert.id <- function(id, version=5, ...){
-    library(PEcAnRTM)
     sep <- paste0("\\", id_separator)
     id.split <- strsplit(id, sep)[[1]]
     project <- tolower(id.split[1])
@@ -9,9 +15,9 @@ invert.id <- function(id, version=5, ...){
     stopifnot(!is.na(sample.name))
     sample.year <- id.split[3]
     stopifnot(!is.na(sample.year))
-    print(paste0("project: ", project))
-    print(paste0("sample.name: ", sample.name))
-    print(paste0("sample.year: ", sample.year))
+    message(paste0("project: ", project))
+    message(paste0("sample.name: ", sample.name))
+    message(paste0("sample.year: ", sample.year))
     dat.full <- readRDS(paste0("processed-spec-data/", project, ".rds")) %>%
         .[SampleName == sample.name]
 
@@ -23,7 +29,7 @@ invert.id <- function(id, version=5, ...){
     dat.reflspec <- dat.full[[1, "Reflectance"]]
 
     wl <- dat.reflspec[,1]
-    wl_rng <- wl[wl >= 400][wl <=2500]
+    wl_rng <- wl[wl >= 400][wl <= 2500]
     refl <- dat.reflspec[[wl]][,-1]
     wl.vec <- wl - 399
     wl.vec <- wl.vec[wl.vec > 0]
