@@ -1,21 +1,15 @@
-DATA := nasa_fft #lopex angers
-#DATA := accp angers arctic_chl lopex nasa_fft yanghf yangmv
+DATA := accp angers arctic_chl lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
+TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
-.PHONY: all clean purge schema
+.PHONY: all clean
 
-all: $(DATA)
+all: $(TARGETS)
 
-%: process.%.R schema species traits
+processed-spec-data/%.rds: process.%.R
 	Rscript $<
-	touch .$@
-
-global: 01.populate_global.R raw/bety.species.csv traitInfo.csv schema
-	Rscript 01.populate_global.R
-
-schema:
-	sqlite3 specdb.sqlite < schema.sql
 
 clean:
-	rm -rf 00-run-inversion.sh specdb.sqlite
+	rm -rf 00-run-inversion.sh
 
-
+purge: clean
+	rm -rf processed-spec-data/*.rds
