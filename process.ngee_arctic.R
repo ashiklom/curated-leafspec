@@ -23,7 +23,8 @@ load_nga <- function(SampleYear) {
         .[, SampleName := paste0("BNL", Sample_Barcode)] %>%
         .[, Project := projectcode] %>%
         .[, FullName := paste(Project, SampleName, SampleYear,
-                              sep = id_separator)]
+                              sep = id_separator)] %>%
+        subToCols()
 
     specfile <- list.files(path_year, "Leaf_GasExchange_Spectra",
                             full.names = TRUE)
@@ -36,10 +37,13 @@ load_nga <- function(SampleYear) {
         cbind("Wavelength" = as.numeric(gsub('Wave_', '', rownames(.))), .) %>%
         wlmat2list()
 
-    out <- chemdat[, Reflectance := specdat[SampleName]]
+    spec_dt <- data.table(SampleName = names(specdat)) %>%
+        .[, Reflectance := specdat[SampleName]]
+
+    out <- merge(chemdat, spec_dt, by = 'SampleName', all = TRUE)
     return(out)
 }
 
 years <- c(2014)
-ngadat <- lapply(years, load_nga) %>% rbindlist()
+ngadat <- lapply(years, load_nga) %>% rbindlist() %>% subToCols()
 saveRDS(ngadat, file = rds_name(projectcode))

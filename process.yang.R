@@ -144,15 +144,21 @@ readYang <- function(SampleYear, Site) {
     
     refl_list <- refl_list[!sapply(refl_list, is.null)]
     refl_full <- do.call(cbind, refl_list) %>% wlmat2list()
+    refl_dat <- data.table(FullName = names(refl_full)) %>%
+        .[, Reflectance := refl_full[FullName]]
 
     if (is_HF) {
         trans_list <- trans_list[!sapply(trans_list, is.null)]
         trans_full <- do.call(cbind, trans_list) %>% wlmat2list()
+        trans_dat <- data.table(FullName = names(trans_full)) %>%
+            .[, Transmittance := trans_full[FullName]]
     }
 
-    dat_trait <- dat_trait[, Reflectance := refl_full[FullName]]
+    dat_trait <- merge(dat_trait, refl_dat, by = "FullName", 
+                       all = TRUE)
     if (is_HF) {
-        dat_trait <- dat_trait[, Transmittance := trans_full[FullName]]
+        dat_trait <- merge(dat_trait, trans_dat, by = "FullName", 
+                           all = TRUE)
     }
 
     out <- subToCols(dat_trait)

@@ -48,7 +48,6 @@ traits_dat_sp <- species.info[traits_dat_raw] %>%
 
 # Load all spectral data
 spec_path <- file.path(accp_path, "leafspec")
-# NOTE: Only fresh ("f") spectra are loaded
 spec_files <- list.files(spec_path, "sp.dat$")
 refl_list <- list()
 dry_list <- character()

@@ -88,9 +88,12 @@ PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 nasa_fft.trans <- fread(PATH.trans, header=TRUE) %>%
     .[, FullName := paste(project_code, Sample_Name, Sample_Year, 
                               sep = id_separator),] %>%
-    reflFromDT("Transmittance")
+    .[, Transmittance := reflFromDT(., "Transmittance")] %>%
+    .[, list(FullName, Transmittance)]
 
-nasa_fft.all <- nasa_fft.all[, Transmittance := nasa_fft.trans[FullName]]
+nasa_fft.all <- merge(nasa_fft.all, nasa_fft.trans, 
+                      by = "FullName", 
+                      all = TRUE)
 
 #' # Process chemistry data
 #' Set paths
@@ -174,6 +177,7 @@ setnames(nasa_fft.traits, c("Sample_Name", "Sample_Year"),
 #' Combine, organize, and save
 nasa_fft <- merge(nasa_fft.all, nasa_fft.traits,
                   all = TRUE,
-                  by = c("SampleName", "SampleYear")) %>% subToCols
+                  by = c("SampleName", "SampleYear")) %>% 
+    subToCols
 saveRDS(nasa_fft, file = "processed-spec-data/nasa_fft.rds")
 

@@ -6,9 +6,6 @@ projectcode <- "ngee_tropics"
 path_ngt <- "raw/NGEE-Tropics/"
 
 namesdict <- c("LWP_bar" = "leaf_water_potential",
-               "CHN_leaf_area_cm2" = "leaf_CHN_area",
-               "NSC_leaf_area_cm2" = "leaf_NSC_area",
-               "Ph_leaf_area_cm2" = "leaf_phenolics_area",
                "Species" = "RawSpecies", 
                "Location" = "Site")
 
@@ -26,7 +23,8 @@ load_ngt <- function(siteyear) {
         .[, SampleName := Barcode] %>%
         .[, Project := projectcode] %>%
         .[, FullName := paste(Project, SampleName, SampleYear,
-                              sep = id_separator)]
+                              sep = id_separator)] %>%
+        subToCols()
 
     specfile <- list.files(path_year, "leaf_spectra",
                             full.names = TRUE)
@@ -40,10 +38,13 @@ load_ngt <- function(siteyear) {
         cbind("Wavelength" = as.numeric(gsub('Wave_', '', rownames(.))), .) %>%
         wlmat2list()
 
-    out <- chemdat[, Reflectance := specdat[SampleName]]
+    spec_dt <- data.table(SampleName = names(specdat)) %>%
+        .[, Reflectance := specdat[SampleName]]
+
+    out <- merge(chemdat, spec_dt, by = 'SampleName', all = TRUE)
     return(out)
 }
 
 siteyears <- list(c('Panama', 2016))
-ngtdat <- lapply(siteyears, load_ngt) %>% rbindlist()
+ngtdat <- lapply(siteyears, load_ngt) %>% rbindlist() %>% subToCols()
 saveRDS(ngtdat, file = rds_name(projectcode))
