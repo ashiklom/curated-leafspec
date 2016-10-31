@@ -124,8 +124,10 @@ for (ID in id) {
     results <- invert.id(ID)
     if (!is.null(results)) {
         saveRDS(results, file = sprintf("raw_output/%s.rds", ID))
+        write(ID, file = "finished.txt", append = TRUE)
     } else {
         message(sprintf("Results were NULL for %s", ID))
+        write(ID, file = "failed.txt", append = TRUE)
     }
 }
 

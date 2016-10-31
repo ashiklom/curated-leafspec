@@ -15,3 +15,8 @@ logs
 specdb.sqlite
 .httr-oauth
 old/
+
+# run status indicators
+all_ids.txt
+finished.txt
+failed.txt
