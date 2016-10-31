@@ -41,7 +41,8 @@ load_ngt <- function(siteyear) {
     spec_dt <- data.table(SampleName = names(specdat)) %>%
         .[, Reflectance := specdat[SampleName]]
 
-    out <- merge(chemdat, spec_dt, by = 'SampleName', all = TRUE)
+    out <- merge(chemdat, spec_dt, by = 'SampleName', all = TRUE) %>%
+        .[!is.na(FullName)]
     return(out)
 }
 

@@ -52,7 +52,7 @@ setnames(angers.chem.raw, "Latin Name", "RawSpecies")
 angers.chem <- angers.chem.raw[, lapply(.SD, replace.na)]
 
 #' Assign individual ID to each spectrum and leaf.
-species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* ([[:alpha:]]{3})[[:alpha:]]* .*"
+species.rxp <- "(^[[:alpha:]]{3})[[:alpha:]]* ([[:alpha:]]{3})[[:alpha:]]* *.*"
 file.rxp <- "an03r(.{4})[.]txt"
 
 oldnames <- c("N",

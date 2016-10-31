@@ -143,13 +143,15 @@ readYang <- function(SampleYear, Site) {
     }
     
     refl_list <- refl_list[!sapply(refl_list, is.null)]
-    refl_full <- do.call(cbind, refl_list) %>% wlmat2list()
+    refl_full <- do.call(cbind, refl_list) %>% wlmat2list() %>%
+        .[names(.) != "Wavelength"]
     refl_dat <- data.table(FullName = names(refl_full)) %>%
         .[, Reflectance := refl_full[FullName]]
 
     if (is_HF) {
         trans_list <- trans_list[!sapply(trans_list, is.null)]
-        trans_full <- do.call(cbind, trans_list) %>% wlmat2list()
+        trans_full <- do.call(cbind, trans_list) %>% wlmat2list() %>%
+            .[names(.) != "Wavelength"]
         trans_dat <- data.table(FullName = names(trans_full)) %>%
             .[, Transmittance := trans_full[FullName]]
     }

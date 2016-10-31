@@ -175,9 +175,17 @@ setnames(nasa_fft.traits, c("Sample_Name", "Sample_Year"),
          c("SampleName", "SampleYear"))
 
 #' Combine, organize, and save
+traitcols <- c("leaf_water_content", "leaf_mass_per_area", 
+               "leaf_C_percent", "leaf_N_percent", "leaf_CN_ratio")
 nasa_fft <- merge(nasa_fft.all, nasa_fft.traits,
                   all = TRUE,
                   by = c("SampleName", "SampleYear")) %>% 
+    .[is.na(FullName), FullName := paste(project_code, SampleName, SampleYear, 
+                                         sep = id_separator)] %>%
+    .[, (traitcols) := lapply(.SD, mean, na.rm = TRUE), by = FullName,
+      .SDcols = traitcols] %>%
+    .[!duplicated(FullName)] %>%
     subToCols
+
 saveRDS(nasa_fft, file = "processed-spec-data/nasa_fft.rds")
 

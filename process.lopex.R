@@ -34,7 +34,7 @@ lopex.chem <- fread(PATH.chem, header=TRUE) %>%
            SampleYear = 1993)
 
 #' Fill in species names and assign ID to each leaf and spectrum.
-species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* ([[:alpha:]]{3})[[:alpha:]]* .*"
+species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"
 j <- 0
 for(i in 1:nrow(lopex.chem)){
     if(lopex.chem[i, RawSpecies] == ""){
