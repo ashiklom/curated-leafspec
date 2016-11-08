@@ -7,8 +7,9 @@ library(specobs)
 
 id_separator <- "|"
 outdir <- "raw_output"
+dir.create(outdir, showWarnings = FALSE)
 
-invert.id <- function(id, version=5, ...){
+invert.id <- function(id, version=5, ...) {
     sep <- paste0("\\", id_separator)
     id.split <- strsplit(id, sep)[[1]]
     project <- tolower(id.split[1])
@@ -78,19 +79,20 @@ invert.id <- function(id, version=5, ...){
             return(out)
         }
     }
-    invert.options$n.tries <- 5
+    invert.options$ngibbs.max <- 1e6
     invert.options$nchains <- 5
     invert.options$do.lsq <- FALSE
+
+    save.samples <- sprintf("%s/%s.rds", outdir, ID)
 
     out <- invert.auto(observed = refl,
                        invert.options = invert.options,
                        return.samples = TRUE,
+                       save.samples = save.samples,
                        parallel = TRUE, 
                        ...)
     return(out)
 }
-
-dir.create(outdir, showWarnings = FALSE)
 
 id <- commandArgs(trailingOnly=TRUE)
 if (length(id) < 1){
@@ -124,11 +126,17 @@ if (length(id) < 1){
 
 for (ID in id) {
     results <- invert.id(ID)
-    if (!is.null(results)) {
+    success <- TRUE
+    if (is.null(results)) {
+        success <- FALSE
+    } else if (is.na(results)) {
+        success <- FALSE
+    }
+    if (success) {
         saveRDS(results, file = sprintf("%s/%s.rds", outdir, ID))
         write(ID, file = "finished.txt", append = TRUE)
     } else {
-        message(sprintf("Results were NULL for %s", ID))
+        message(sprintf("Run failed: %s", ID))
         write(ID, file = "failed.txt", append = TRUE)
     }
 }
