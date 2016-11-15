@@ -7,20 +7,28 @@ id.list <- gsub("(.*).rds", "\\1", flist)
 names(id.list) <- flist
 results.list <- list()
 did.not.converge <- character()
-pb <- txtProgressBar(min = 1, max = nf, style = 3)
 for (i in seq_along(flist)) {
-    setTxtProgressBar(pb, i)
     f <- flist[i]
+    print(paste(i, "of", length(flist),"----", f))
     ff <- file.path(outdir, f)
-    output <- readRDS(ff)
-    if (!is.na(output$results)) {
+    exist <- TRUE
+    output <- try(readRDS(ff))
+    if ("try-error" %in% class(output)) exist <- FALSE
+    if (exist) {
+        if (is.null(output$results)) exist <- FALSE
+    }
+    if (exist) {
+        if (is.na(output$results)) exist <- FALSE
+    }
+    if (exist) {
         results <- as.data.table(output$results)
-        results[, sample_id := id.list[f]]
+        results[, FullName := id.list[f]]
         results.list[[f]] <- results
     } else {
         #warning(paste0(f, ": Results not found, likely because the run did not converge."))
         did.not.converge <- c(did.not.converge, f)
     }
+
 }
 
 print("The following runs had no results, presumably because they did not converge:")
