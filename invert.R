@@ -81,7 +81,7 @@ invert.id <- function(id, version=5, ...) {
     }
     invert.options$ngibbs.max <- 1e6
     invert.options$nchains <- 5
-    invert.options$do.lsq <- FALSE
+    invert.options$do.lsq <- TRUE
 
     save.samples <- sprintf("%s/%s.rds", outdir, id)
 
