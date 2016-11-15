@@ -20,15 +20,15 @@ invert.id <- function(id, version=5, ...) {
     message(paste0("project: ", project))
     message(paste0("sample.name: ", sample.name))
     message(paste0("sample.year: ", sample.year))
-    dat.full <- readRDS(paste0("processed-spec-data/", project, ".rds")) %>%
-        .[SampleName == sample.name]
+    dat.full <- readRDS(paste0("processed-spec-data/", project, ".rds"))
+    dat.sub <- dat.full[FullName == id]
 
-    if (nrow(dat.full) == 0) {
+    if (nrow(dat.sub) == 0) {
         message(sprintf("Spectrum %s not found", id))
         return(NULL)
     }
 
-    dat.reflspec <- dat.full[[1, "Reflectance"]]
+    dat.reflspec <- dat.sub[[1, "Reflectance"]]
 
     wl <- dat.reflspec[,1]
     wl_rng <- wl[wl >= 400][wl <= 2500]
@@ -83,7 +83,7 @@ invert.id <- function(id, version=5, ...) {
     invert.options$nchains <- 5
     invert.options$do.lsq <- FALSE
 
-    save.samples <- sprintf("%s/%s.rds", outdir, ID)
+    save.samples <- sprintf("%s/%s.rds", outdir, id)
 
     out <- invert.auto(observed = refl,
                        invert.options = invert.options,
