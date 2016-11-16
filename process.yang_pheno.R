@@ -108,7 +108,7 @@ readYang <- function(SampleYear, Site) {
 
     # Load spectral data
 
-    getSpec <- function(fname, doy){
+    getSpec <- function(fname) {
         spec <- fread(fname, header=FALSE) %>%
             setnames(c("Wavelength", 
                        dat_trait[DOY == doys[i], 
@@ -116,8 +116,11 @@ readYang <- function(SampleYear, Site) {
             .[Wavelength != 0] %>%
             as.matrix() %>%
             specobs()
-        if (all(is.na(spec))) return(NULL)
-        return(spec)
+        if (all(!is.finite(spec))) return(NULL)
+        exclude <- apply(spec, 2, 
+                         function(x) all(!is.finite(x) | x == 0))
+
+        return(spec[, !exclude])
     }
 
     doys <- dat_trait[, unique(DOY)] %>% sort

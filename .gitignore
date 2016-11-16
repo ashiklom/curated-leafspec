@@ -4,6 +4,8 @@
 00-run-inversion.sh
 *.pdf
 *.png
+*.txt
+*.rds
 raw
 *.sh.o*
 figures

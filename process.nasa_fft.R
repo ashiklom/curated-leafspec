@@ -188,4 +188,3 @@ nasa_fft <- merge(nasa_fft.all, nasa_fft.traits,
     subToCols
 
 saveRDS(nasa_fft, file = "processed-spec-data/nasa_fft.rds")
-

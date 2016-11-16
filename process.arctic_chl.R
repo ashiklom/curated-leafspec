@@ -47,5 +47,6 @@ chl.reflspec <- chl.raw[, wl.names, with=F] %>%
                 "colnames<-"(chl.dat[, FullName]) %>%
                 cbind("Wavelength" = wavelengths, .) %>%
                 wlmat2list()
-chl.dat <- chl.dat[, Reflectance := chl.reflspec[FullName]]
+chl.dat <- chl.dat[, Reflectance := chl.reflspec[FullName]] %>%
+                subToCols()
 saveRDS(chl.dat, file = rds_name(projectcode))

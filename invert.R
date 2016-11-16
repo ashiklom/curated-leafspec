@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 # Perform a single inversion as a function of sample ID
 library(PEcAnRTM)
 library(dtplyr)
@@ -8,6 +9,7 @@ library(specobs)
 id_separator <- "|"
 outdir <- "raw_output"
 dir.create(outdir, showWarnings = FALSE)
+dat.full <- readRDS("specdat.rds")
 
 invert.id <- function(id, version=5, ...) {
     sep <- paste0("\\", id_separator)
@@ -20,7 +22,6 @@ invert.id <- function(id, version=5, ...) {
     message(paste0("project: ", project))
     message(paste0("sample.name: ", sample.name))
     message(paste0("sample.year: ", sample.year))
-    dat.full <- readRDS(paste0("processed-spec-data/", project, ".rds"))
     dat.sub <- dat.full[FullName == id]
 
     if (nrow(dat.sub) == 0) {
@@ -31,10 +32,18 @@ invert.id <- function(id, version=5, ...) {
     dat.reflspec <- dat.sub[[1, "Reflectance"]]
 
     wl <- dat.reflspec[,1]
-    wl_rng <- wl[wl >= 400][wl <= 2500]
-    refl <- dat.reflspec[[wl]][,-1]
+    wl_rng <- wl[wl >= 400 & wl <= 2500]
+    refl <- dat.reflspec[[wl_rng]][,-1]
+    if (!is.null(dim(refl))) {
+        nrow_refl <- nrow(refl)
+    } else {
+        nrow_refl <- length(refl)
+    }
+
     wl.vec <- wl - 399
     wl.vec <- wl.vec[wl.vec > 0]
+
+    stopifnot(length(wl.vec) == nrow_refl)
 
     if (all(is.na(refl))) {
         message(sprintf("%s spectrum is all NA or NAN. Returning NULL.", id))

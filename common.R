@@ -32,15 +32,9 @@ replace.na <- function(column, na.val = -999){
 
 id_separator <- "|"
 
-gs_main <- gs_title("metadata")
-metadata <- gs_read(gs_main, ws = "metadata_columns") %>% 
-    select(Column) %>% 
-    .[[1]]
-traits <- gs_read(gs_main, "traitInfo") %>% 
-    select(TraitName) %>% 
-    .[[1]]
+metadata <- readLines("metadata.txt")
+traits <- readLines("traits.txt")
 spec_cols <- c("Reflectance", "Transmittance")
-
 all_cols <- c(metadata, traits, spec_cols)
 
 subToCols <- function(dat) {
