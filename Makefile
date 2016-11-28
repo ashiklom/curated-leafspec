@@ -1,4 +1,4 @@
-DATA := accp angers arctic_chl lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
+DATA := accp angers lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
 TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
 .PHONY: all clean
