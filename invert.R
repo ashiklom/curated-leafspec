@@ -7,8 +7,10 @@ library(data.table)
 library(specobs)
 
 id_separator <- "|"
-outdir <- "raw_output"
-dir.create(outdir, showWarnings = FALSE)
+outdir_final <- "final_output"
+dir.create(outdir_final, showWarnings = FALSE)
+outdir_progress <- "progress_output"
+dir.create(outdir_progress, showWarnings = FALSE)
 dat.full <- readRDS("specdat.rds")
 
 invert.id <- function(id, version=5, ...) {
@@ -90,16 +92,18 @@ invert.id <- function(id, version=5, ...) {
     }
     invert.options$ngibbs.max <- 1e6
     invert.options$nchains <- 5
-    invert.options$do.lsq <- TRUE
+    invert.options$do.lsq <- FALSE
 
-    save.samples <- sprintf("%s/%s.rds", outdir, id)
+    save.samples <- sprintf("%s/%s.rds", outdir_progress, id)
 
+    message("Starting inversion...")
     out <- invert.auto(observed = refl,
                        invert.options = invert.options,
                        return.samples = TRUE,
                        save.samples = save.samples,
                        parallel = TRUE, 
                        ...)
+    message("Inversion complete!")
     return(out)
 }
 
@@ -142,7 +146,7 @@ for (ID in id) {
         success <- FALSE
     }
     if (success) {
-        saveRDS(results, file = sprintf("%s/%s.rds", outdir, ID))
+        saveRDS(results, file = sprintf("%s/%s.rds", outdir_final, ID))
         write(ID, file = "finished.txt", append = TRUE)
     } else {
         message(sprintf("Run failed: %s", ID))
