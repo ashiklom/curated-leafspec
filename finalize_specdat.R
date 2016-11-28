@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 library(dtplyr)
 library(data.table)
 library(dplyr)
