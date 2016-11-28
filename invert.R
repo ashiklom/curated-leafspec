@@ -33,19 +33,12 @@ invert.id <- function(id, version=5, ...) {
 
     dat.reflspec <- dat.sub[[1, "Reflectance"]]
 
+    # Calculate wavelength indices for PROSPECT
     wl <- dat.reflspec[,1]
-    wl_rng <- wl[wl >= 400 & wl <= 2500]
-    refl <- dat.reflspec[[wl_rng]][,-1]
-    if (!is.null(dim(refl))) {
-        nrow_refl <- nrow(refl)
-    } else {
-        nrow_refl <- length(refl)
-    }
-
-    wl.vec <- wl - 399
-    wl.vec <- wl.vec[wl.vec > 0]
-
-    stopifnot(length(wl.vec) == nrow_refl)
+    wl_valid <- wl >= 400 & wl <= 2500
+    refl_wl <- dat.reflspec[wl_valid,]
+    wl_prospect_inds <- refl_wl[,1] - 399
+    refl <- refl_wl[,-1]
 
     if (all(is.na(refl))) {
         message(sprintf("%s spectrum is all NA or NAN. Returning NULL.", id))
@@ -55,44 +48,53 @@ invert.id <- function(id, version=5, ...) {
         message(sprintf("%s spectrum contains NA. Returning NULL.", id))
         return(NULL)
     }
-    pseudo_absorbance <- FALSE
-    if (!is.null(dat.full$SpecialSpec)) {
-        if (!(is.na(dat.full$SpecialSpec))) {
-            if (dat.full$SpecialSpec == "PA") {
-                pseudo_absorbance <- TRUE
-            }
-        }
+
+    if (!is.matrix(refl)) {
+        refl <- matrix(refl)
     }
-    if (!is.null(dim(refl))) {
-        refl <- t(refl)
-    }
+
     if (any(dim(refl) < 1)) {
         stop(sprintf("Reflectance spectrum %s not found", sample.name))
     }
 
+    stopifnot(length(wl_prospect_inds) == nrow(refl))
+
+    pseudo_absorbance <- FALSE
+    if (!is.null(dat.sub$SpecialSpec)) {
+        if (!(is.na(dat.sub$SpecialSpec))) {
+            if (dat.sub$SpecialSpec == "PA") {
+                pseudo_absorbance <- TRUE
+            }
+        }
+    }
+
     # Get column names from summary.simple function (a bit of a hack)
     samps <- matrix(0, nrow=1, ncol=6)
-    colnames(samps) <- c(params.prospect5, "residual")
+    prospect_names <- switch(as.character(version), 
+                             "4" = params.prospect4,
+                             "5" = params.prospect5,
+                             "5B" = params.prospect5b)
+    colnames(samps) <- c(prospect_names, "residual")
     samps.summary <- summary_simple(samps)
     cnames <- names(samps.summary)
 
     # Set up custom PROSPECT inversion parameters
     invert.options <- default.settings.prospect
     invert.options$model <- function(param, runID=NULL) {
-        prospect(param, version)[wl.vec,1]
+        prospect(param, version)[wl_prospect_inds, 1]
     }
 
     if (pseudo_absorbance) {
         message(sprintf("%s spectrum is pseudo-absorbance", id))
         invert.options$model <- function(param, runID=NULL) {
-            mod <- prospect(param, version)[wl.vec,1]
+            mod <- prospect(param, version)[wl_prospect_inds, 1]
             out <- log10(1/mod)
             return(out)
         }
     }
     invert.options$ngibbs.max <- 1e6
     invert.options$nchains <- 5
-    invert.options$do.lsq <- FALSE
+    invert.options$do.lsq <- TRUE
 
     save.samples <- sprintf("%s/%s.rds", outdir_progress, id)
 
