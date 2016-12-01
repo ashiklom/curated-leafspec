@@ -14,10 +14,7 @@ spec_2013_file <- file.path(path_nga, "2013_data",
                             "NGEE-Arctic_2013_Spectra_and_Trait_Data_QA_v2_forR.csv")
 speclist[['2013']] <- fread(spec_2013_file, header = TRUE) %>%
     .[, SampleName := paste0('BNL', Sample_ID)] %>%
-    mutate(SampleYear = 2013)
-
-spec_2014_file <- file.path(path_nga, "2014_Data", 
-                            "NGEE-Arctic_Barrow_2014_Leaf_GasExchange_Spectra.xlsx")
+    mutate(SampleYear = 2013, Site = 'Barrow')
 
 getwlcols <- function(dat) {
     grep('Wave_', colnames(dat), value = TRUE)
@@ -28,10 +25,13 @@ scale_wl <- function(dat, scale_factor = 0.01) {
         .SDcols = getwlcols(dat)]
 }
 
+spec_2014_file <- file.path(path_nga, "2014_Data", 
+                            "NGEE-Arctic_Barrow_2014_Leaf_GasExchange_Spectra.xlsx")
+
 speclist[['2014']] <- read_excel(spec_2014_file, sheet = 1) %>% 
     setDT() %>%
     setnames("Spectra", "SampleName") %>%
-    mutate(SampleYear = 2014) %>%
+    mutate(SampleYear = 2014, Site = 'Barrow') %>%
     scale_wl()
 
 spec_2015_file <- file.path(path_nga, "2015_Data",
@@ -39,7 +39,7 @@ spec_2015_file <- file.path(path_nga, "2015_Data",
 speclist[['2015']] <- read_excel(spec_2015_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2015) %>%
+    mutate(SampleYear = 2015, Site = 'Barrow') %>%
     scale_wl()
 
 spec_2016b_file <- file.path(path_nga, "2016_Data",
@@ -47,7 +47,7 @@ spec_2016b_file <- file.path(path_nga, "2016_Data",
 speclist[['2016b']] <- read_excel(spec_2016b_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016) %>%
+    mutate(SampleYear = 2016, Site = 'Barrow') %>%
     scale_wl()
 
 spec_2016s_file <- file.path(path_nga, "2016_Data",
@@ -55,7 +55,7 @@ spec_2016s_file <- file.path(path_nga, "2016_Data",
 speclist[['2016s']] <- read_excel(spec_2016b_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016) %>%
+    mutate(SampleYear = 2016, Site = 'Seward') %>%
     scale_wl()
 
 specdat_full <- rbindlist(speclist, fill = TRUE)
@@ -69,7 +69,7 @@ specmat <- specdat_full %>%
     wlmat2list
 
 specdat <- specdat_full %>% 
-    select(SampleName, SampleYear) %>%
+    select(SampleName, SampleYear, Site) %>%
     .[, Reflectance := specmat[SampleName]]
 
 # Load main traits file
