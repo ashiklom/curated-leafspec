@@ -18,32 +18,45 @@ speclist[['2013']] <- fread(spec_2013_file, header = TRUE) %>%
 
 spec_2014_file <- file.path(path_nga, "2014_Data", 
                             "NGEE-Arctic_Barrow_2014_Leaf_GasExchange_Spectra.xlsx")
+
+getwlcols <- function(dat) {
+    grep('Wave_', colnames(dat), value = TRUE)
+}
+
+scale_wl <- function(dat, scale_factor = 0.01) {
+    dat[, getwlcols(dat) := lapply(.SD, '*', 0.01), 
+        .SDcols = getwlcols(dat)]
+}
+
 speclist[['2014']] <- read_excel(spec_2014_file, sheet = 1) %>% 
     setDT() %>%
     setnames("Spectra", "SampleName") %>%
-    mutate(SampleYear = 2014)
+    mutate(SampleYear = 2014) %>%
+    scale_wl()
 
 spec_2015_file <- file.path(path_nga, "2015_Data",
                             "NGEE-Arctic_Barrow_2015_SVC_Leaf_Spectra.xlsx")
 speclist[['2015']] <- read_excel(spec_2015_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2015)
-
+    mutate(SampleYear = 2015) %>%
+    scale_wl()
 
 spec_2016b_file <- file.path(path_nga, "2016_Data",
                              "NGEE-Arctic_Barrow_2016_SVC_Leaf_Spectra.xlsx")
 speclist[['2016b']] <- read_excel(spec_2016b_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016)
+    mutate(SampleYear = 2016) %>%
+    scale_wl()
 
 spec_2016s_file <- file.path(path_nga, "2016_Data",
                              "NGEE-Arctic_Seward_2016_HR1024i_Leaf_Spectral_Reflectance.xlsx")
 speclist[['2016s']] <- read_excel(spec_2016b_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016)
+    mutate(SampleYear = 2016) %>%
+    scale_wl()
 
 specdat_full <- rbindlist(speclist, fill = TRUE)
 specmat <- specdat_full %>%
