@@ -20,6 +20,7 @@
 #' Source common script.
 source("common.R")
 project_code <- "LOPEX"
+sitename <- "Ispra"
 
 #' Set paths for LOPEX data
 PATH.LOPEX <- file.path("raw", "LOPEX")
@@ -31,7 +32,8 @@ PATH.spec <- file.path(PATH.LOPEX, "spec")
 lopex.chem <- fread(PATH.chem, header=TRUE) %>%
     setnames("Latin Name", "RawSpecies") %>%
     mutate(Project = project_code,
-           SampleYear = 1993)
+           SampleYear = 1993,
+           Site = sitename)
 
 #' Fill in species names and assign ID to each leaf and spectrum.
 species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"

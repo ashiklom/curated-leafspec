@@ -37,7 +37,8 @@
 
 #' Setup
 source("common.R")
-projectcode <- "ANGERS"
+projectcode <- 'ANGERS'
+sitename <- 'INRA'
 
 #' Set paths
 PATH.ANGERS <- file.path("raw", "ANGERS")
@@ -68,6 +69,7 @@ newnames <- c("leaf_nlayers",
 angers.chem <- angers.chem %>%
     .[, Project := projectcode] %>%
     .[, SampleYear := 2003] %>%
+    .[, Site := sitename] %>%
     .[, SampleName := sprintf("%s_%s",
                                gsub(species.rxp, "\\1-\\2", RawSpecies),
                                gsub(file.rxp, "\\1", Refl_file))] %>%
