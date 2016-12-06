@@ -149,7 +149,8 @@ nga_dat <- specdat %>%
     left_join(traits_full, by = c('SampleName', 'SampleYear', 'Site')) %>%
     mutate(Project = projectcode,
            FullName = paste(Project, SampleName, SampleYear, 
-                            sep = id_separator))
+                            sep = id_separator)) %>%
+    subToCols
 
 # Sanity checks
 nga_dat %>% group_by(Site) %>% count()

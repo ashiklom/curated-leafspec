@@ -86,13 +86,15 @@ nasa_fft.all <- fixNeedleAge(nasa_fft.all)
 message("Loading transmittance...")
 PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 nasa_fft.trans <- fread(PATH.trans, header=TRUE) %>%
-    .[, FullName := paste(project_code, Sample_Name, Sample_Year, 
+    .[, Project := project_code] %>%
+    .[, FullName := paste(Project, Sample_Name, Sample_Year, 
                               sep = id_separator),] %>%
     .[, Transmittance := reflFromDT(., "Transmittance")] %>%
-    .[, list(FullName, Transmittance)]
+    setnames("Species", "RawSpecies") %>%
+    .[, list(FullName, Transmittance, RawSpecies)]
 
 nasa_fft.all <- merge(nasa_fft.all, nasa_fft.trans, 
-                      by = "FullName", 
+                      by = c("FullName", "RawSpecies"), 
                       all = TRUE)
 
 #' # Process chemistry data
@@ -108,10 +110,14 @@ PATH.SLA_LMA <- file.path(PATH.FFT,
                           "NASA_FFT_SLA_LMA_Data_v2_4R_updated_new.csv")
 
 #' Read in data
-nasa_fft.d15N <- fread(PATH.d15N, header=TRUE)
-nasa_fft.lignin <- fread(PATH.lignin, header=TRUE)
-nasa_fft.cn <- fread(PATH.CN, header=TRUE)
-nasa_fft.lma <- fread(PATH.SLA_LMA, header=TRUE)
+nasa_fft.d15N <- fread(PATH.d15N, header=TRUE) %>%
+    setnames('SPECIES', 'RawSpecies')
+nasa_fft.lignin <- fread(PATH.lignin, header=TRUE) %>%
+    setnames('SPECIES', 'RawSpecies')
+nasa_fft.cn <- fread(PATH.CN, header=TRUE) %>%
+    setnames('Species', 'RawSpecies')
+nasa_fft.lma <- fread(PATH.SLA_LMA, header=TRUE) %>%
+    setnames('Species', 'RawSpecies')
 
 #' Remove data with comments, which usually indicate that there's something 
 #' wrong with the data. TODO: Look more closely into this.
@@ -124,8 +130,8 @@ nasa_fft.lma[EWT_g_cm2 < 0, EWT_g_cm2 := NA]
 nasa_fft.lma[LMA_g_DW_m2 < 0, LMA_g_DW_m2 := NA]
 
 #' Extract only the values that we're interested in from each data.table.
-mergeby.lower <- c("Sample_Name", "Sample_Year")
-mergeby.caps <- toupper(mergeby.lower)
+mergeby.lower <- c("Sample_Name", "Sample_Year", 'RawSpecies')
+mergeby.caps <- c('SAMPLE_NAME', 'SAMPLE_YEAR', 'RawSpecies')
 nasa_fft.d15N <- nasa_fft.d15N[, c(mergeby.caps, "SAMPLE_dN15"), with=F]
 nasa_fft.lignin <- nasa_fft.lignin[, c(mergeby.caps, "ADF_PERC_DW", "ADL_PERC_DW",
                              "CELL_PERC_DW"), with=F]
@@ -179,7 +185,7 @@ traitcols <- c("leaf_water_content", "leaf_mass_per_area",
                "leaf_C_percent", "leaf_N_percent", "leaf_CN_ratio")
 nasa_fft <- merge(nasa_fft.all, nasa_fft.traits,
                   all = TRUE,
-                  by = c("SampleName", "SampleYear")) %>% 
+                  by = c("SampleName", "SampleYear", 'RawSpecies')) %>% 
     .[is.na(FullName), FullName := paste(project_code, SampleName, SampleYear, 
                                          sep = id_separator)] %>%
     .[, (traitcols) := lapply(.SD, mean, na.rm = TRUE), by = FullName,
