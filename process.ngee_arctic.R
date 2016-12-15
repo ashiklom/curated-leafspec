@@ -104,6 +104,18 @@ pigments <- read_excel(pigments_file, sheet = 2) %>%
            Site = 'Barrow') %>%
     setDT()
 
+# Get other pigment data from 2013
+traits2013 <- speclist[['2013']] %>%
+    select(-starts_with('Wave')) %>%
+    mutate(leaf_chlorophyll_a = Chl_a_g_m2 * (1000^2)/(100^2),
+           leaf_chlorophyll_b = Chl_b_g_m2 * (1000^2)/(100^2),
+           leaf_chlorophyll_total = leaf_chlorophyll_a + leaf_chlorophyll_b) %>%
+    select(SampleName, SampleYear, RawSpecies = USDA_Species,
+           contains('leaf_chlorophyll'))
+
+#traits2013[!is.na(Narea_gN_m2), SampleName] %in%
+    #nga_dat[!is.na(leaf_N_percent), SampleName]
+
 # Load other data from 2016
 seward_2016_lma_file <- file.path(path_nga, "2016_Data", 
                                   "2016KGsamples_LMA-edited.csv")
@@ -143,7 +155,12 @@ dat_2016 <- full_join(seward_2016_lma, barrow_2016_lma) %>%
     subToCols()
 dat_other <- full_join(traits_main, pigments) %>%
     filter(!is.na(SampleYear))
-traits_full <- full_join(dat_2016, dat_other)
+traits_full <- full_join(dat_2016, dat_other) %>%
+    setkey(SampleName) %>%
+    .[traits2013[, SampleName], 
+      `:=`(leaf_chlorophyll_a = traits2013[, leaf_chlorophyll_a],
+           leaf_chlorophyll_b = traits2013[, leaf_chlorophyll_b],
+           leaf_chlorophyll_total = traits2013[, leaf_chlorophyll_total])]
 
 nga_dat <- specdat %>%
     left_join(traits_full, by = c('SampleName', 'SampleYear', 'Site')) %>%
@@ -157,5 +174,6 @@ nga_dat %>% group_by(Site) %>% count()
 nga_dat %>% group_by(RawSpecies) %>% count()
 nga_dat %>% filter(is.na(RawSpecies)) %>% 
     group_by(Site, SampleYear) %>% count()
+nga_dat[!is.na(leaf_chlorophyll_total), .N, SampleYear]
  
 saveRDS(nga_dat, file = rds_name(projectcode))
