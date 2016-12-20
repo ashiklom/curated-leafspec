@@ -24,7 +24,6 @@ colnames_dict <- c('sampleid' = 'SampleName',
                    'carbon' = 'leaf_C_percent',
                    'hydrogen' = 'leaf_H_percent',
                    'nitrogen' = 'leaf_N_percent',
-                   'water_th' = 'leaf_water_content',
                    'chloro_a' = 'leaf_chlorophyll_a',
                    'chloro_b' = 'leaf_chlorophyll_b')
 setnames(traits_dat_raw, names(colnames_dict), colnames_dict)
@@ -32,12 +31,13 @@ setnames(traits_dat_raw, names(colnames_dict), colnames_dict)
 # Fix values
 traits_dat_raw <- traits_dat_raw[, lapply(.SD, replace.na)] %>%
     .[, SampleYear := colldate %>% as.character %>%
-      as.Date(format = "%y%m%d") %>%
-      strftime("%Y") %>%
-      as.numeric()] %>%
-  .[, Project := "ACCP"] %>%
-  .[, FullName := paste(Project, SampleName, SampleYear,
-                        sep = id_separator)]
+                as.Date(format = "%y%m%d") %>%
+                strftime("%Y") %>%
+                as.numeric()] %>%
+    .[, leaf_water_content := water_th * 10000] %>%
+    .[, Project := "ACCP"] %>%
+    .[, FullName := paste(Project, SampleName, SampleYear,
+                          sep = id_separator)]
 
 species.info <- fread(file.path(traits_path, "LTER_species.dat"))
 species.info[, author := NULL]

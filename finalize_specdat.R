@@ -16,11 +16,15 @@ specdat_cleaned <- specdat[!no_refl]
 saveRDS(specdat_cleaned, "specdat.rds")
 
 message("Merging with species...")
-species <- readRDS("species.rds") %>% setDT()
+species <- readRDS("species.rds") %>% 
+    select(Project, RawSpecies, SpeciesCode) %>%
+    setDT()
 
-setkey(species, Project, RawSpecies)
-setkey(specdat, Project, RawSpecies)
-alldat <- species[specdat] %>% select(-RawSpecies, -Database_ID)
+species_final <- readRDS('species_final.rds')
+
+alldat <- specdat %>% 
+    left_join(species) %>%
+    left_join(species_final)
 
 saveRDS(alldat, "alldat.rds")
 

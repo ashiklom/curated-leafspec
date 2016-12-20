@@ -86,7 +86,6 @@ nasa_fft.all <- fixNeedleAge(nasa_fft.all)
 message("Loading transmittance...")
 PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 nasa_fft.trans <- fread(PATH.trans, header=TRUE) %>%
-    .[, Project := project_code] %>%
     .[, FullName := paste(Project, Sample_Name, Sample_Year, 
                               sep = id_separator),] %>%
     .[, Transmittance := reflFromDT(., "Transmittance")] %>%
@@ -186,6 +185,7 @@ traitcols <- c("leaf_water_content", "leaf_mass_per_area",
 nasa_fft <- merge(nasa_fft.all, nasa_fft.traits,
                   all = TRUE,
                   by = c("SampleName", "SampleYear", 'RawSpecies')) %>% 
+    .[is.na(Project), Project := project_code] %>%
     .[is.na(FullName), FullName := paste(project_code, SampleName, SampleYear, 
                                          sep = id_separator)] %>%
     .[, (traitcols) := lapply(.SD, mean, na.rm = TRUE), by = FullName,

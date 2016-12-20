@@ -20,7 +20,6 @@ try_all <- src_sqlite('~/Projects/try/try-sqlite/try.sqlite')
 try_data <- try_all %>% tbl('orig_data')
 try_datanames <- try_all %>% tbl('orig_datanames')
 
-
 # Set growth form
 message("Growth form")
 species <- species %>%
@@ -79,6 +78,7 @@ species <- species %>%
     .[grepl('herb|graminoid|vine', growth_form), woody := FALSE]
 
 ## Photosynthesis type
+message("PS type")
 ps_try <- try_data %>%
     filter(DataID == 25,
            AccSpeciesID %in% species[['TRY_Species_ID']]) %>%
