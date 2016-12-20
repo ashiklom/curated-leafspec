@@ -1,6 +1,34 @@
-source("common.R")
+#source("common.R")
+source('../../mergewithsql.R')
 
-accp_path <- file.path("raw/ACCP/accp/")
+suppressPackageStartupMessages({
+    library(dtplyr)
+    library(data.table)
+    library(dplyr)
+    library(RPostgreSQL)
+})
+
+# Global variables
+project_code <- 'accp'
+project <- tibble(
+    code = project_code,
+    description = 'Accelerated Canopy Chemistry Program',
+    comment = 'Oak Ridge National Lab (ORNL)')
+
+mrg <- merge_with_sql(project, 'projects', by = 'code')
+
+specdb <- src_postgres('leaf_spectra')
+project_id <- specdb %>% 
+    tbl('projects') %>% 
+    filter(code == project_code) %>%
+    select(id) %>% collect() %>% .$id
+
+arg <- commandArgs(trailingOnly = TRUE)
+if (length(arg) != 1) {
+    accp_path <- file.path("raw")
+} else {
+    accp_path <- arg[1]
+}
 
 # Load all chemistry data
 traits_path <- file.path(accp_path, "leafchem")
@@ -13,6 +41,8 @@ for (f in traits_files){
     traits_list[[f]] <- dat
 }
 traits_dat_raw <- rbindlist(traits_list, fill=TRUE)
+
+# Samples
 
 # Fix names
 colnames_dict <- c('sampleid' = 'SampleName',
