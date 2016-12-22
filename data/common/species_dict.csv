@@ -1,0 +1,267 @@
+RawSpecies,ScientificName,SpeciesCode,Database_ID,Project,old_scientific,SpeciesScientific
+UNKN1,NA,NA,NA,NASA_FFT,NA,NA
+ABBA,"Abies balsamea (L.) Mill.",ABBA,USDA_Plants,NASA_FFT,NA,NA
+ACNE,"Acer negundo L.",ACNE2,USDA_Plants,NASA_FFT,NA,NA
+ACPL,"Acer platanoides L.",ACPL,USDA_Plants,NASA_FFT,NA,NA
+ACRU,"Acer rubrum L.",ACRU,USDA_Plants,NASA_FFT,NA,NA
+ACSN,"Acer saccharinum L.",ACSA2,USDA_Plants,NASA_FFT,NA,NA
+ACSM,"Acer saccharum Marsh.",ACSA3,USDA_Plants,NASA_FFT,NA,NA
+ACSP,"Acer spicatum Lam.",ACSP2,USDA_Plants,NASA_FFT,NA,NA
+ALIN,"Alnus incana (L.) Moench",ALIN2,USDA_Plants,NASA_FFT,NA,NA
+ANGE,"Andropogon gerardii Vitman",ANGE,USDA_Plants,NASA_FFT,NA,NA
+BEAL,"Betula alleghaniensis Britton",BEAL2,USDA_Plants,NASA_FFT,NA,NA
+BEGL,"Betula glandulosa Michx.",BEGL,USDA_Plants,NASA_FFT,NA,NA
+BELE,"Betula lenta L.",BELE,USDA_Plants,NASA_FFT,NA,NA
+BEPA,"Betula papyrifera Marsh.",BEPA,USDA_Plants,NASA_FFT,NA,NA
+CAREX,"Carex L.",CAREX,USDA_Plants,NASA_FFT,NA,NA
+CAAL,"Carya alba (L.) Nutt.",CATO6,USDA_Plants,NASA_FFT,NA,NA
+CAOV,"Carya ovata (Mill.) K. Koch",CAOV2,USDA_Plants,NASA_FFT,NA,NA
+CEOC,"Celtis occidentalis L.",CEOC,USDA_Plants,NASA_FFT,NA,NA
+COFL,"Cornus florida L.",COFL2,USDA_Plants,NASA_FFT,NA,NA
+COAM,"Corylus americana Walter",COAM3,USDA_Plants,NASA_FFT,NA,NA
+FAGR,"Fagus grandifolia Ehrh.",FAGR,USDA_Plants,NASA_FFT,NA,NA
+FRAM,"Fraxinus americana L.",FRAM2,USDA_Plants,NASA_FFT,NA,NA
+FRNI,"Fraxinus nigra Marsh.",FRNI,USDA_Plants,NASA_FFT,NA,NA
+FRPE,"Fraxinus pennsylvanica Marsh.",FRPE,USDA_Plants,NASA_FFT,NA,NA
+JUNI,"Juglans nigra L.",JUNI,USDA_Plants,NASA_FFT,NA,NA
+JUVI,"Juniperus virginiana L.",JUVI,USDA_Plants,NASA_FFT,NA,NA
+LALA,"Larix laricina (Du Roi) K. Koch",LALA,USDA_Plants,NASA_FFT,NA,NA
+LEGR,"Ledum groenlandicum Oeder",LEGR,USDA_Plants,NASA_FFT,NA,NA
+LITU,"Liriodendron tulipifera L.",LITU,USDA_Plants,NASA_FFT,NA,NA
+MAAC,"Magnolia acuminata (L.) L.",MAAC,USDA_Plants,NASA_FFT,NA,NA
+NYSY,"Nyssa sylvatica Marsh.",NYSY,USDA_Plants,NASA_FFT,NA,NA
+OSVI,"Ostrya virginiana (Mill.) K. Koch",OSVI,USDA_Plants,NASA_FFT,NA,NA
+PIMA,"Picea mariana (Mill.) Britton, Sterns & Poggenb.",PIMA,USDA_Plants,NASA_FFT,NA,NA
+PIRU,"Picea rubens Sarg.",PIRU,USDA_Plants,NASA_FFT,NA,NA
+PIBA,"Pinus banksiana Lamb.",PIBA2,USDA_Plants,NASA_FFT,NA,NA
+PIPU,"Pinus pungens Lamb.",PIPU5,USDA_Plants,NASA_FFT,NA,NA
+PIRE,"Pinus resinosa Aiton",PIRE,USDA_Plants,NASA_FFT,NA,NA
+PIST,"Pinus strobus L.",PIST,USDA_Plants,NASA_FFT,NA,NA
+PISY,"Pinus sylvestris L.",PISY,USDA_Plants,NASA_FFT,NA,NA
+PIVI,"Pinus virginiana Mill.",PIVI2,USDA_Plants,NASA_FFT,NA,NA
+PODE,"Populus deltoides Bartram ex Marsh.",PODE3,USDA_Plants,NASA_FFT,NA,NA
+POGR,"Populus grandidentata Michx.",POGR4,USDA_Plants,NASA_FFT,NA,NA
+POTR,"Populus tremuloides Michx.",POTR5,USDA_Plants,NASA_FFT,NA,NA
+PRUNUS,"Prunus L.",PRUNU,USDA_Plants,NASA_FFT,NA,NA
+PRPE,"Prunus pensylvanica L. f.",PRPE2,USDA_Plants,NASA_FFT,NA,NA
+PRSE,"Prunus serotina Ehrh.",PRSE2,USDA_Plants,NASA_FFT,NA,NA
+QUAL,"Quercus alba L.",QUAL,USDA_Plants,NASA_FFT,NA,NA
+QUEL,"Quercus ellipsoidalis E.J. Hill",QUEL,USDA_Plants,NASA_FFT,NA,NA
+QUMA,"Quercus macrocarpa Michx.",QUMA2,USDA_Plants,NASA_FFT,NA,NA
+QUPR,"Quercus prinus L.",QUMO4,USDA_Plants,NASA_FFT,NA,NA
+QURU,"Quercus rubra L.",QURU,USDA_Plants,NASA_FFT,NA,NA
+RHCA,"Rhamnus cathartica L.",RHCA3,USDA_Plants,NASA_FFT,NA,NA
+ROPS,"Robinia pseudoacacia L.",ROPS,USDA_Plants,NASA_FFT,NA,NA
+SAAL,"Sassafras albidum (Nutt.) Nees",SAAL5,USDA_Plants,NASA_FFT,NA,NA
+THOC,"Thuja occidentalis L.",THOC2,USDA_Plants,NASA_FFT,NA,NA
+TIAM,"Tilia americana L.",TIAM,USDA_Plants,NASA_FFT,NA,NA
+TSCA,"Tsuga canadensis (L.) Carrière",TSCA,USDA_Plants,NASA_FFT,NA,NA
+TYLA,"Typha latifolia L.",TYLA,USDA_Plants,NASA_FFT,NA,NA
+ULAM,"Ulmus americana L.",ULAM,USDA_Plants,NASA_FFT,NA,NA
+LONICERA,"Lonicera L.",LONIC,USDA_Plants,NASA_FFT,NA,NA
+RHMA,"Rhexia mariana L.",RHMA,USDA_Plants,NASA_FFT,NA,NA
+HAVI,"Hamamelis virginiana L.",HAVI4,USDA_Plants,NASA_FFT,NA,NA
+KALA,"Kalmia latifolia L.",KALA,USDA_Plants,NASA_FFT,NA,NA
+SPPE,"Spartina pectinata Bosc ex Link",SPPE,USDA_Plants,NASA_FFT,NA,NA
+SALIX,"Salix L.",SALIX,USDA_Plants,NASA_FFT,NA,NA
+PHAR,"Phalaris arundinacea L.",PHAR3,USDA_Plants,NASA_FFT,NA,NA
+NA,NA,NA,NA,ACCP,NA,NA
+lichen,NA,NA,NA,ACCP,NA,NA
+"Abies balsamea","Abies balsamea (L.) Mill.",ABBA,USDA_Plants,ACCP,NA,NA
+"Acer pensylvanicum","Acer pensylvanicum L.",ACPE,USDA_Plants,ACCP,NA,NA
+"Acer rubrum","Acer rubrum L.",ACRU,USDA_Plants,ACCP,NA,NA
+"Acer saccharum","Acer saccharum Marsh.",ACSA3,USDA_Plants,ACCP,NA,NA
+"Aesculus californica","Aesculus californica (Spach) Nutt.",AECA,USDA_Plants,ACCP,NA,NA
+"Arbutus menziesii","Arbutus menziesii Pursh",ARME,USDA_Plants,ACCP,NA,NA
+"Betula papyrifera","Betula papyrifera Marsh.",BEPA,USDA_Plants,ACCP,NA,NA
+"Dirca occidentalis","Dirca occidentalis A. Gray",DIOC3,USDA_Plants,ACCP,NA,NA
+"Eriodictyon californicum","Eriodictyon californicum (Hook. & Arn.) Torr.",ERCA6,USDA_Plants,ACCP,NA,NA
+"Fagus grandifolia","Fagus grandifolia Ehrh.",FAGR,USDA_Plants,ACCP,NA,NA
+"Fraxinus americana","Fraxinus americana L.",FRAM2,USDA_Plants,ACCP,NA,NA
+"Heteromeles arbutifolia","Heteromeles arbutifolia (Lindl.) M. Roem.",HEAR5,USDA_Plants,ACCP,NA,NA
+"Larix laricina","Larix laricina (Du Roi) K. Koch",LALA,USDA_Plants,ACCP,NA,NA
+"Ludwigia pacifica","Ludwigia L.",LUDWI,USDA_Plants,ACCP,NA,NA
+"Picea abies","Picea abies (L.) Karst.",PIAB,USDA_Plants,ACCP,NA,NA
+"Picea glauca","Picea glauca (Moench) Voss",PIGL,USDA_Plants,ACCP,NA,NA
+"Picea mariana","Picea mariana (Mill.) Britton, Sterns & Poggenb.",PIMA,USDA_Plants,ACCP,NA,NA
+"Picea rubens","Picea rubens Sarg.",PIRU,USDA_Plants,ACCP,NA,NA
+"Pinus resinosa","Pinus resinosa Aiton",PIRE,USDA_Plants,ACCP,NA,NA
+"Pinus strobus","Pinus strobus L.",PIST,USDA_Plants,ACCP,NA,NA
+"Populus grandidentata","Populus grandidentata Michx.",POGR4,USDA_Plants,ACCP,NA,NA
+"Populus tremuloides","Populus tremuloides Michx.",POTR5,USDA_Plants,ACCP,NA,NA
+"Prunus ilicifolia","Prunus ilicifolia (Nutt. ex Hook. & Arn.) D. Dietr.",PRIL,USDA_Plants,ACCP,NA,NA
+"Prunus serotina","Prunus serotina Ehrh.",PRSE2,USDA_Plants,ACCP,NA,NA
+"Quercus agrifolia","Quercus agrifolia Née",QUAG,USDA_Plants,ACCP,NA,NA
+"Quercus douglasii","Quercus douglasii Hook. & Arn.",QUDO,USDA_Plants,ACCP,NA,NA
+"Quercus kelloggii","Quercus kelloggii Newberry",QUKE,USDA_Plants,ACCP,NA,NA
+"Quercus lobata","Quercus lobata Née",QULO,USDA_Plants,ACCP,NA,NA
+"Quercus rubra","Quercus rubra L.",QURU,USDA_Plants,ACCP,NA,NA
+"Thuja occidentalis","Thuja occidentalis L.",THOC2,USDA_Plants,ACCP,NA,NA
+"Tsuga canadensis","Tsuga canadensis (L.) Carrière",TSCA,USDA_Plants,ACCP,NA,NA
+"Typha angustifolia","Typha angustifolia L.",TYAN,USDA_Plants,ACCP,NA,NA
+"Umbellularia californica","Umbellularia californica (Hook. & Arn.) Nutt.",UMCA,USDA_Plants,ACCP,NA,NA
+Wyethia,"Wyethia Nutt.",WYETH,USDA_Plants,ACCP,NA,NA
+"Xanthium strumarium","Xanthium strumarium L.",XAST,USDA_Plants,ACCP,NA,NA
+PIST,"Pinus strobus L.",PIST,USDA_Plants,ACCP,NA,NA
+PISY,"Pinus sylvestris L.",PISY,USDA_Plants,ACCP,NA,NA
+PIVI,"Pinus virginiana Mill.",PIVI2,USDA_Plants,ACCP,NA,NA
+PODE,"Populus deltoides Bartram ex Marsh.",PODE3,USDA_Plants,ACCP,NA,NA
+POGR,"Populus grandidentata Michx.",POGR4,USDA_Plants,ACCP,NA,NA
+POTR,"Populus tremuloides Michx.",POTR5,USDA_Plants,ACCP,NA,NA
+PRUNUS,"Prunus L.",PRUNU,USDA_Plants,ACCP,NA,NA
+PRPE,"Prunus pensylvanica L. f.",PRPE2,USDA_Plants,ACCP,NA,NA
+PRSE,"Prunus serotina Ehrh.",PRSE2,USDA_Plants,ACCP,NA,NA
+QUAL,"Quercus alba L.",QUAL,USDA_Plants,ACCP,NA,NA
+QUEL,"Quercus ellipsoidalis E.J. Hill",QUEL,USDA_Plants,ACCP,NA,NA
+QUMA,"Quercus macrocarpa Michx.",QUMA2,USDA_Plants,ACCP,NA,NA
+QUPR,"Quercus prinus L.",QUMO4,USDA_Plants,ACCP,NA,NA
+QURU,"Quercus rubra L.",QURU,USDA_Plants,ACCP,NA,NA
+RHCA,"Rhamnus cathartica L.",RHCA3,USDA_Plants,ACCP,NA,NA
+ROPS,"Robinia pseudoacacia L.",ROPS,USDA_Plants,ACCP,NA,NA
+SAAL,"Sassafras albidum (Nutt.) Nees",SAAL5,USDA_Plants,ACCP,NA,NA
+THOC,"Thuja occidentalis L.",THOC2,USDA_Plants,ACCP,NA,NA
+TIAM,"Tilia americana L.",TIAM,USDA_Plants,ACCP,NA,NA
+TSCA,"Tsuga canadensis (L.) Carrière",TSCA,USDA_Plants,ACCP,NA,NA
+TYLA,"Typha latifolia L.",TYLA,USDA_Plants,ACCP,NA,NA
+ULAM,"Ulmus americana L.",ULAM,USDA_Plants,ACCP,NA,NA
+"Calicarpa bodinieri","Callicarpa bodinieri H.Lév.",kew-30688,ThePlantList,ANGERS,NA,NA
+"Cornus alba 'Elegantissima'","Cornus alba L.",kew-47268,ThePlantList,ANGERS,NA,NA
+"Rhododendron calophytum","Rhododendron calophytum Franch.",tro-50060048,ThePlantList,ANGERS,NA,NA
+"Schefflera arboricola 'Gold Capella'","Schefflera arboricola (Hayata) Merr.",SCAR10,USDA_Plants,ANGERS,NA,NA
+"Acer negundo 'Variegatum'","Acer negundo L.",ACNE2,USDA_Plants,ANGERS,NA,NA
+"Acer pseudoplatanus L.","Acer pseudoplatanus L.",ACPS,USDA_Plants,ANGERS,NA,NA
+"Alnus glutinosa L.","Alnus glutinosa (L.) Gaertn.",ALGL2,USDA_Plants,ANGERS,NA,NA
+"Castanea sativa","Castanea sativa Mill.",CASA27,USDA_Plants,ANGERS,NA,NA
+"Cercis siliquastrum","Cercis siliquastrum L.",CESI9,USDA_Plants,ANGERS,NA,NA
+"Corylus maxima 'Purpurea'","Corylus maxima Mill.",COMA18,USDA_Plants,ANGERS,NA,NA
+"Cotinus coggygria","Cotinus coggygria Scop.",COCO10,USDA_Plants,ANGERS,NA,NA
+"Eucalyptus gunnii","Eucalyptus gunnii Hook. f.",EUGU5,USDA_Plants,ANGERS,NA,NA
+"Euonymus fortunei 'Emerald'n' Gold'","Euonymus fortunei (Turcz.) Hand.-Maz.",EUFO5,USDA_Plants,ANGERS,NA,NA
+"Euonymus fortunei 'Ovatus Aureus'","Euonymus fortunei (Turcz.) Hand.-Maz.",EUFO5,USDA_Plants,ANGERS,NA,NA
+"Euonymus fortunei 'Silver Queen'","Euonymus fortunei (Turcz.) Hand.-Maz.",EUFO5,USDA_Plants,ANGERS,NA,NA
+"Euonymus fortunei Hand.-Mazz","Euonymus fortunei (Turcz.) Hand.-Maz.",EUFO5,USDA_Plants,ANGERS,NA,NA
+Geranium,"Geranium L.",GERAN,USDA_Plants,ANGERS,NA,NA
+"Hedera helix 'Dentata Variegata'","Hedera helix L.",HEHE,USDA_Plants,ANGERS,NA,NA
+"Hydrangea macrophylla cv","Hydrangea macrophylla (Thunb.) Ser.",HYMA7,USDA_Plants,ANGERS,NA,NA
+"Ilex aquifolium 'Golden Milkboy'","Ilex aquifolium L.",ILAQ80,USDA_Plants,ANGERS,NA,NA
+"Juglans regia  L.","Juglans regia L.",JURE80,USDA_Plants,ANGERS,NA,NA
+"Ligustrum vulgare","Ligustrum vulgare L.",LIVU,USDA_Plants,ANGERS,NA,NA
+"Liquidambar styraciflua L.","Liquidambar styraciflua L.",LIST2,USDA_Plants,ANGERS,NA,NA
+"Liriodendron tulipifera L.","Liriodendron tulipifera L.",LITU,USDA_Plants,ANGERS,NA,NA
+"Osmanthus heterophyllus","Osmanthus heterophyllus (G. Don) P.S. Green",OSHE,USDA_Plants,ANGERS,NA,NA
+"Parthenocissus tricuspidata","Parthenocissus tricuspidata (Siebold & Zucc.) Planch.",PATR6,USDA_Plants,ANGERS,NA,NA
+"Populus alba L.","Populus alba L.",POAL7,USDA_Plants,ANGERS,NA,NA
+"Prunus laurocerasus 'Otto Luyken'","Prunus laurocerasus L.",PRLA5,USDA_Plants,ANGERS,NA,NA
+"Prunus laurocerasus L.","Prunus laurocerasus L.",PRLA5,USDA_Plants,ANGERS,NA,NA
+"Prunus lusitanica L.","Prunus lusitanica L.",PRLU,USDA_Plants,ANGERS,NA,NA
+"Quercus ilex L.","Quercus ilex L.",QUIL2,USDA_Plants,ANGERS,NA,NA
+"Quercus palustris","Quercus palustris Münchh.",QUPA2,USDA_Plants,ANGERS,NA,NA
+"Rhus typhina L.","Rhus typhina L.",RHTY,USDA_Plants,ANGERS,NA,NA
+"Robinia pseudoacacia 'Frisia'","Robinia pseudoacacia L.",ROPS,USDA_Plants,ANGERS,NA,NA
+"Robinia pseudoacacia L.","Robinia pseudoacacia L.",ROPS,USDA_Plants,ANGERS,NA,NA
+"Salix atrocinerea","Salix atrocinerea Brot.",SAAT2,USDA_Plants,ANGERS,NA,NA
+"Syringa vulgaris L.","Syringa vulgaris L.",SYVU,USDA_Plants,ANGERS,NA,NA
+"Tilia tomentosa","Tilia tomentosa Moench",TITO,USDA_Plants,ANGERS,NA,NA
+"Viburnum plicatum 'Lanarth'","Viburnum plicatum Thunb.",VIPL,USDA_Plants,ANGERS,NA,NA
+"Viburnum rhytidophyllum","Viburnum rhytidophyllum Hemsl.",VIRH,USDA_Plants,ANGERS,NA,NA
+"Viburnum tinus L.","Viburnum tinus L.",VITI2,USDA_Plants,ANGERS,NA,NA
+"Vitis vinifera L","Vitis vinifera L.",VIVI5,USDA_Plants,ANGERS,NA,NA
+"Weigela florida 'Foliis Purpureis'","Weigela florida (Bunge) A. DC.",WEFL2,USDA_Plants,ANGERS,NA,NA
+"Lycopersicum esculentum","Solanum lycopersicum L.",SOLY2,USDA_Plants,LOPEX,NA,NA
+"Quercus pubescens","Quercus pubescens Willd.",kew-174591,ThePlantList,LOPEX,NA,NA
+"Acer pseudoplatanus L.","Acer pseudoplatanus L.",ACPS,USDA_Plants,LOPEX,NA,NA
+"Alnus glutinosa L.","Alnus glutinosa (L.) Gaertn.",ALGL2,USDA_Plants,LOPEX,NA,NA
+"Bambusa arundinacea","Bambusa arundinacea (Retz.) Willd.",BAAR8,USDA_Plants,LOPEX,NA,NA
+"Beta vulgaris L.","Beta vulgaris L.",BEVU2,USDA_Plants,LOPEX,NA,NA
+"Betula pendula","Betula pendula Roth",BEPE3,USDA_Plants,LOPEX,NA,NA
+"Brassica oleracea L.","Brassica oleracea L.",BROL,USDA_Plants,LOPEX,NA,NA
+"Castanea sativa","Castanea sativa Mill.",CASA27,USDA_Plants,LOPEX,NA,NA
+"Chamaerops humilis L.","Chamaerops humilis L.",CHHU7,USDA_Plants,LOPEX,NA,NA
+"Corylus avellana L.","Corylus avellana L.",COAV80,USDA_Plants,LOPEX,NA,NA
+"Ensete ventricosum","Ensete ventricosum (Welw.) Cheeseman",ENVE2,USDA_Plants,LOPEX,NA,NA
+"Fagus sylvatica L.","Fagus sylvatica L.",FASY,USDA_Plants,LOPEX,NA,NA
+"Ficus carica L.","Ficus carica L.",FICA,USDA_Plants,LOPEX,NA,NA
+"Fraxinus excelsior L.","Fraxinus excelsior L.",FREX80,USDA_Plants,LOPEX,NA,NA
+"Glycine max L.","Glycine max (L.) Merr.",GLMA4,USDA_Plants,LOPEX,NA,NA
+"Hedera helix L.","Hedera helix L.",HEHE,USDA_Plants,LOPEX,NA,NA
+"Helianthus annuus L.","Helianthus annuus L.",HEAN3,USDA_Plants,LOPEX,NA,NA
+"Iris germanica L.","Iris germanica L.",IRGE,USDA_Plants,LOPEX,NA,NA
+"Juglans regia L.","Juglans regia L.",JURE80,USDA_Plants,LOPEX,NA,NA
+"Lactuca sativa L.","Lactuca sativa L.",LASA3,USDA_Plants,LOPEX,NA,NA
+"Laurus nobilis L.","Laurus nobilis L.",LANO80,USDA_Plants,LOPEX,NA,NA
+"Medicago sativa L.","Medicago sativa L.",MESA,USDA_Plants,LOPEX,NA,NA
+"Morus alba L.","Morus alba L.",MOAL,USDA_Plants,LOPEX,NA,NA
+"Morus nigra L.","Morus nigra L.",MONI,USDA_Plants,LOPEX,NA,NA
+"Oryza sativa L.","Oryza sativa L.",ORSA,USDA_Plants,LOPEX,NA,NA
+"Phleum pratense L.","Phleum pratense L.",PHPR3,USDA_Plants,LOPEX,NA,NA
+"Phragmites australis","Phragmites australis (Cav.) Trin. ex Steud.",PHAU7,USDA_Plants,LOPEX,NA,NA
+"Populus tremula L.","Populus tremula L.",POTR10,USDA_Plants,LOPEX,NA,NA
+"Populus x canadensis","Populus ×canadensis Moench (pro sp.) [deltoides × nigra]",POCA19,USDA_Plants,LOPEX,NA,NA
+"Prunus armeniaca L.","Prunus armeniaca L.",PRAR3,USDA_Plants,LOPEX,NA,NA
+"Prunus laurocerasus L.","Prunus laurocerasus L.",PRLA5,USDA_Plants,LOPEX,NA,NA
+"Prunus serotina","Prunus serotina Ehrh.",PRSE2,USDA_Plants,LOPEX,NA,NA
+"Quercus rubra L.","Quercus rubra L.",QURU,USDA_Plants,LOPEX,NA,NA
+"Robinia pseudoacacia L.","Robinia pseudoacacia L.",ROPS,USDA_Plants,LOPEX,NA,NA
+"Salix alba L.","Salix alba L.",SAAL2,USDA_Plants,LOPEX,NA,NA
+"Salvia officinalis L.","Salvia officinalis L.",SAOF2,USDA_Plants,LOPEX,NA,NA
+"Solanum tuberosum L.","Solanum tuberosum L.",SOTU,USDA_Plants,LOPEX,NA,NA
+"Sorghum halepense L.","Sorghum halepense (L.) Pers.",SOHA,USDA_Plants,LOPEX,NA,NA
+"Tilia platyphyllos","Tilia platyphyllos Scop.",TIPL,USDA_Plants,LOPEX,NA,NA
+"Trifolium pratense L.","Trifolium pratense L.",TRPR2,USDA_Plants,LOPEX,NA,NA
+"Ulmus glabra","Ulmus glabra Huds.",ULGL,USDA_Plants,LOPEX,NA,NA
+"Urtica dioica L.","Urtica dioica L.",URDI,USDA_Plants,LOPEX,NA,NA
+"Vitis vinifera L.","Vitis vinifera L.",VIVI5,USDA_Plants,LOPEX,NA,NA
+"Vitis vinifera L. ssp. Sylvestris","Vitis vinifera L.",VIVI5,USDA_Plants,LOPEX,NA,NA
+"Zea mays L.","Zea mays L.",ZEMA,USDA_Plants,LOPEX,NA,NA
+ARFU2,"Arctophila fulva (Trin.) Andersson",ARFU2,USDA_Plants,ngee_arctic,NA,NA
+ARLA2,"Arctagrostis latifolia (R.Br.) Griseb.",ARLA2,USDA_Plants,ngee_arctic,NA,NA
+CAAQ,"Carex aquatilis Wahlenb.",CAAQ,USDA_Plants,ngee_arctic,NA,NA
+DUFI,"Dupontia fisheri R.Br.",DUFI,USDA_Plants,ngee_arctic,NA,NA
+ERAN6,"Eriophorum angustifolium Honck.",ERAN6,USDA_Plants,ngee_arctic,NA,NA
+PEFR5,"Petasites frigidus (L.) Fr.",PEFR5,USDA_Plants,ngee_arctic,NA,NA
+SAPU15,"Salix pulchra Cham.",SAPU15,USDA_Plants,ngee_arctic,NA,NA
+VAVI,"Vaccinium vitis-idaea L.",VAVI,USDA_Plants,ngee_arctic,NA,NA
+SARO2,"Salix rotundifolia Trautv.",SARO2,USDA_Plants,ngee_arctic,NA,NA
+POAR2,"Poa arctica R. Br.",POAR2,USDA_Plants,ngee_arctic,NA,NA
+LUAR9,"Luzula arctica Blytt",LUAR9,USDA_Plants,ngee_arctic,NA,NA
+SAPU6,"Saxifraga punctata L.",tro-29100182,ThePlantList,ngee_arctic,NA,NA
+POHY4,"Potentilla hyparctica Malte",PONA6,USDA_Plants,ngee_arctic,NA,NA
+ALNFRU,"Alnus alnobetula subsp. fruticosa (Rupr.) Raus",kew-466796,ThePlantList,ngee_arctic,NA,NA
+BETGLA,"Betula nana L. subsp. exilis",BENAE,USDA_Plants,ngee_arctic,NA,NA
+SALGLA,"Salix glauca var. acutifolia (Hook.) C.K.Schneid.",kew-5003760,ThePlantList,ngee_arctic,NA,NA
+CASTEL,"Castilla elastica Sessé",CAEL5,USDA_Plants,ngee_tropics,"Castilla elastica",NA
+LUEHSE,"Luehea seemannii Triana & Planch",kew-2496835,ThePlantList,ngee_tropics,"Luehea seemannii",NA
+ANACEX,"Anacardium excelsum (Bertero ex Kunth) Skeels",kew-2635897,ThePlantList,ngee_tropics,"Anacardium excelsum",NA
+CORDAL,"Cordia alliodora (Ruiz & Pav.) Oken",COAL,USDA_Plants,ngee_tropics,"Cordia alliodora",NA
+CALYCA,"Calycophyllum candidissimum (Vahl) DC.",CACA73,USDA_Plants,ngee_tropics,"Calycophyllum candidissimum",NA
+FICUIN,"Ficus insipida Willd.",kew-2810868,ThePlantList,ngee_tropics,"Ficus insipida",NA
+ALBIED,"Albizia guachapele (Kunth) Dugand",ild-32326,ThePlantList,ngee_tropics,"Pseudosamanea guachapele",NA
+ANTITR,"Pittoniotis trichantha Griseb.",kew-156694,ThePlantList,ngee_tropics,"Pittoniotis trichantha",NA
+PSE1SE,"Pseudobombax septenatum (Jacq.) Dugand",kew-2412504,ThePlantList,ngee_tropics,"Pseudobombax septenatum",NA
+CECRPE,"Cecropia schreberiana Miq.",CESC9,USDA_Plants,ngee_tropics,"Cecropia peltata",NA
+TERMAM,"Terminalia amazonia (J.F.Gmel.) Exell",kew-2431494,ThePlantList,ngee_tropics,"Terminalia amazonia",NA
+TOCOPI,"Tocoyena pittieri (Standl.) Standl.",kew-206933,ThePlantList,ngee_tropics,"Tocoyena pittieri",NA
+CARAGU,"Carapa guianensis Aubl.",CAGU6,usda_Plants,ngee_tropics,"Carapa guianensis",NA
+TACHVE,"Tachigali versicolor Standl. & L.O.Williams",ild-10610,ThePlantList,ngee_tropics,"Tachigali versicolor",NA
+VOCHFE,"Vochysia ferruginea Mart.",kew-2461164,ThePlantList,ngee_tropics,"Vochysia ferruginea",NA
+VIROSP,"Virola multiflora (Standl.) A.C.Sm.",kew-2452051,ThePlantList,ngee_tropics,"Virola multiflora",NA
+MICOBO,"Miconia borealis Gleason",tro-20302782,ThePlantList,ngee_tropics,"Miconia borealis",NA
+APEIME,"Apeiba membranacea Spruce ex Benth.",kew-2643251,ThePlantList,ngee_tropics,"Apeiba membranacea",NA
+GUATDU,"Guatteria dumetorum R.E.Fr.",kew-2834344,ThePlantList,ngee_tropics,"Guatteria dumetorum",NA
+CECRIN,"Cecropia insignis Liebm.",kew-2707049,ThePlantList,ngee_tropics,"Cecropia insignis",NA
+INGAPE,"Inga pezizifera Benth.",ild-12189,ThePlantList,ngee_tropics,NA,NA
+SIMAM,NA,NA,NA,ngee_tropics,NA,NA
+ALSEBL,"Alseis blackiana Hemsl.",kew-6968,ThePlantList,ngee_tropics,NA,NA
+GUSTSU,"Gustavia superba (Kunth) O.Berg",kew-314-067,ThePlantList,ngee_tropics,NA,NA
+MICOAR,"Miconia argentea (Sw.) DC.",tro-20302666,ThePlantList,ngee_tropics,NA,NA
+CAL1,"Callichlamys latifolia (Rich.) K. Schum.",tro-3700004,ThePlantList,ngee_tropics,NA,NA
+AST2GR,"Astronium graveolens Jacq.",kew-2664129,ThePlantList,ngee_tropics,NA,NA
+POSOLA,"Posoqueria latifolia (Rudge) Schult.",kew-163583,ThePlantList,ngee_tropics,NA,NA
+CAPI,"Capparis indica (L.) Druce",CAIN5,USDA_Plants,ngee_tropics,NA,NA
+PPRE,"Piper reticulatum L.",PIRE10,USDA_Plants,ngee_tropics,NA,NA
+PIT1RU,"Cojoba rufescens (Benth.) Britton & Rose",ild-17602,ThePlantList,ngee_tropics,NA,NA
+CUPACI,"Cupania cinerea Poepp.",kew-2747501,ThePlantList,ngee_tropics,NA,NA
+ALBIAD,NA,NA,NA,ngee_tropics,NA,NA
+"Acer rubrum",NA,ACRU,USDA_Plants,yang_pheno,NA,"Acer rubrum L."
+"Betula alleghaniensis",NA,BEAL2,USDA_Plants,yang_pheno,NA,"Betula alleghaniensis Britton"
+"Quercus rubra",NA,QURU,USDA_Plants,yang_pheno,NA,"Quercus rubra L."
