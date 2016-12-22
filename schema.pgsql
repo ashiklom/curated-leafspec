@@ -29,7 +29,7 @@ CREATE TABLE projects(
 CREATE TABLE sites(
     ID bigserial PRIMARY KEY,
     Code text UNIQUE, 
-    Name text,
+    Description text,
     Comment text
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE plots(
     ID bigserial PRIMARY KEY,
     SiteCode text REFERENCES sites (Code),
     Code text UNIQUE,
-    Name text,
+    Description text,
     Latitude numeric,
     Longitude numeric,
     Comment text
@@ -85,6 +85,21 @@ CREATE TABLE samples(
     Comment text
 );
 
+CREATE TABLE sample_condition(
+    ID bigserial PRIMARY KEY,
+    SampleCode text REFERENCES samples (Code),
+    Condition text REFERENCES sample_condition_info (Condition),
+    Value text,
+    Comment text
+);
+
+CREATE TABLE sample_condition_info(
+    ID bigserial PRIMARY KEY,
+    Condition text,
+    Description text,
+    Comment text
+);
+
 CREATE TABLE trait_info(
     ID bigserial PRIMARY KEY,
     Trait text UNIQUE,
@@ -112,21 +127,21 @@ CREATE TABLE specmethods(
 
 CREATE TABLE spectra_info(
     ID bigserial PRIMARY KEY,
-    SampleCode text REFERENCES samples (Code),
+    SampleCode text NOT NULL REFERENCES samples (Code),
     Type text 
         CONSTRAINT legal_spectra_type 
         CHECK (Type = 'reflectance' OR 
                 Type = 'transmittance' OR 
                 Type = 'pseudo-absorbance'),
     SpecMethodID bigint REFERENCES specmethods (ID),
-    FreshDry text,
+    SamplePrep text,
     Comment text
 );
 
 /* Data tables */
 CREATE TABLE trait_data(
     ID bigserial PRIMARY KEY,
-    SampleCode text REFERENCES samples (Code),
+    SampleCode text NOT NULL REFERENCES samples (Code),
     Trait text REFERENCES trait_info (Trait),
     Value numeric,
     Comment text
@@ -134,7 +149,7 @@ CREATE TABLE trait_data(
 
 CREATE TABLE spectra_data(
     ID bigserial PRIMARY KEY,
-    SpectraID bigint REFERENCES spectra_info,
+    SpectraID bigint NOT NULL REFERENCES spectra_info,
     Wavelength numeric CONSTRAINT legal_wavelength CHECK (Wavelength > 0),
     Value numeric
 );
