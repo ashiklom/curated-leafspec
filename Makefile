@@ -1,9 +1,10 @@
-DATA := accp angers lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
-TARGETS := $(DATA:%=processed-spec-data/%.rds)
+DATA := accp 
+#angers lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
+#TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
-.PHONY: all clean
+.PHONY: all clean reset
 
-all: $(TARGETS)
+all: reset $(DATA)
 
 processed-spec-data/%.rds: process.%.R
 	Rscript $<
@@ -13,3 +14,15 @@ clean:
 
 purge: clean
 	rm -rf processed-spec-data/*.rds
+
+install:
+	Rscript -e "library(devtools); document('specprocess'); install('specprocess')" 
+
+reset:
+	./00.wipe_schema.sh
+	Rscript 01.projects_table.R
+	Rscript 02.species_table.R
+	Rscript 03.species_dict.R
+
+accp:
+	Rscript process.accp.R

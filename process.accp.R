@@ -1,7 +1,6 @@
 library(specprocess)
-
+specdb <- src_postgres('leaf_spectra')
 project.code <- 'accp'
-
 accp_path <- 'data/accp'
 
 # Load all chemistry data
@@ -15,9 +14,7 @@ for (f in traits_files){
     traits_list[[f]] <- dat
 }
 traits_dat_raw <- rbindlist(traits_list, fill=TRUE)
-colnames_dict <- c('sampleid' = 'samples.code',
-                   'site_id' = 'sitecode',
-                   'plot_id' = 'plotcode',
+colnames_dict <- c('sampleid' = 'samplename',
                    'species' = 'datacode',
                    'cell' = 'leaf_cellulose_pct_mass',
                    'lignin' = 'leaf_lignin_pct_mass',
@@ -38,44 +35,51 @@ pct_cols <- grep('_pct_', colnames_dict, value = TRUE)
 mass_cols <- grep('[^p][^c][^t]_mass$', colnames_dict, value = TRUE)
 new_mass_cols <- gsub('_mass$', '_pct_mass', mass_cols)
 
-# Set units for all values
 traits_dat_raw <- traits_dat_raw[, lapply(.SD, replace.na)] %>%
-    .[, (pct_cols) := lapply(.SD, `*`, ud_units$'%'), .SDcols = pct_cols] %>%
-    .[, (mass_cols) := lapply(.SD, `*`, with(ud_units, mg/g)), .SDcols = mass_cols] %>%
-    .[, leaf_water_thickness := leaf_water_thickness * parse_unit('g cm-2')] %>%
 # Perform unit conversions
-    .[, (mass_cols) := lapply(.SD, `*`, 100 * ud_units$'%'), .SDcols = mass_cols] %>%
+    .[, (mass_cols) := lapply(.SD, ud.convert, 'mg g-1', 'percent'), .SDcols = mass_cols] %>%
     setnames(mass_cols, new_mass_cols) %>%
-    .[, leaf_water_thickness := 'units<-'(leaf_water_thickness, parse_unit('kg m-2'))] %>%
-# Populate additional metadata
-    .[, collectiondate := as.Date(as.character(colldate), format = '%y%m%d')] %>%
-    .[, year := year(collectiondate)] %>%
-    .[, projectcode := project.code] %>%
-    .[, fullname := paste(project.code, samples.code, year, sep = '|')] %>%
-# `species.code` is already the correct USDA code
-    .[, codetype := 'USDA_plants'] %>% # Species codetype
-    .[, sitecode := paste0('accp.', sitecode)] %>%
-    .[, plotcode := paste0(sitecode, '.', plotcode)]
+    .[, leaf_water_thickness := ud.convert(leaf_water_thickness, 'g cm-2', 'kg m-2')]
 
-## Create sites table
-specdb <- src_postgres('leaf_spectra')
+# Load all spectral data
+spec_path <- file.path(accp_path, "leafspec")
+spec_files <- list.files(spec_path, "sp.dat$")
+refl_list <- list()
+dat_list <- list()
+for (f in spec_files) {
+    if (grepl("_d_sp.dat", f)){
+        prep <- "dry"
+    } else if (grepl('_f_sp.dat', f)) {
+        prep <- 'fresh'
+    } else if (grepl('_p_sp.dat', f)) {
+        prep <- 'powder'
+    } else {
+        warning('Unknown spectra type')
+        next
+    }
+    if (grepl('jr_f_sp.dat', f)) {
+        type <- 'reflectance'
+    } else {
+        type <- 'pseudo-absorbance'
+    }
+    fname <- file.path(spec_path, f)
+    rawdat <- fread(fname)
+    dat <- rawdat %>% select(-band)
+    dat_melt <- melt(dat, id.vars = 'wavelength', 
+                     variable.name = 'samplename') %>%
+        mutate(sampleprep = prep,
+               fname = f,
+               type = type) %>%
+        filter(value > -0.5)    # NA values stored as -1
+    dat_list[[f]] <- dat_melt
+}
+accp_spec <- rbindlist(dat_list)
+rm(dat_list, dat_melt, dat)
 
-#dbSendQuery(specdb$con, '
-#DELETE FROM plots
-#WHERE code LIKE \'accp.%\'
-#')
-
-site <- traits_dat_raw %>% 
-    distinct(sitecode) %>%
-    rename(code = sitecode)
-mrg <- merge_with_sql(site, 'sites')
-
-# Create plots table
-# TODO: Read in plot data
-accp_plots <- traits_dat_raw %>%
-    distinct(plotcode, sitecode) %>%
-    rename(code = plotcode)
-mrg <- merge_with_sql(accp_plots, 'plots')
+# Revise bad sample codes
+accp_spec <- accp_spec[, samplename := gsub('BH', 'BHI', samplename)] %>%
+    filter(!(samplename %in% c('92CWS61BA2A', '92CWS7FRN', '92HFS19RO4'))) %>%
+    .[grepl('^(map|df)_', fname), samplename := paste0(samplename, '_', sampleprep)]
 
 # Match species
 species_dict <- tbl(specdb, 'species_dict') %>%
@@ -83,57 +87,91 @@ species_dict <- tbl(specdb, 'species_dict') %>%
     select(datacode, speciescode) %>%
     collect() %>%
     setDT()
-traits_dat_raw <- left_join(traits_dat_raw, species_dict)
+
+# Buld whole samples table
+all_samples <- accp_spec %>%
+    distinct(samplename, sampleprep, type, fname) %>%
+    full_join(traits_dat_raw) %>%
+    .[, plot_id := as.character(plot_id)] %>%
+    .[grepl('^map_', fname), 
+      `:=`(site_id = 'SaplingACMA3',
+           datacode = 'ACMA3',
+           plot_id = NA)] %>%
+    .[grepl('^df_', fname), 
+      `:=`(site_id = 'SaplingPSME', 
+           datacode = 'PSME',
+           plot_id = NA)] %>%
+# Populate additional metadata
+    .[, collectiondate := as.Date(as.character(colldate), format = '%y%m%d')] %>%
+    .[, year := year(collectiondate)] %>%
+    .[, projectcode := project.code] %>%
+    .[, fullname := paste(project.code, samplename, year, sep = '|')] %>%
+# `species.code` is already the correct USDA code
+    .[, codetype := 'USDA_plants'] %>% # Species codetype
+    .[, sitecode := paste0(projectcode, '.', site_id)] %>%
+    .[, plotcode := paste0(sitecode, '.', plot_id)] %>%
+    left_join(species_dict)
+all_samples[, .N, fullname][N > 1]
+
+## Create sites table
+site <- all_samples %>% 
+    distinct(sitecode) %>%
+    rename(code = sitecode)
+mrg <- merge_with_sql(site, 'sites')
+
+# Create plots table
+# TODO: Read in plot data
+accp_plots <- all_samples %>%
+    distinct(plotcode, sitecode) %>%
+    rename(code = plotcode)
+mrg <- merge_with_sql(accp_plots, 'plots')
 
 # Samples table
-samples <- traits_dat_raw %>%
+samples <- all_samples %>%
     distinct(fullname, projectcode, year, collectiondate,
              plotcode, speciescode) %>%
-    rename(code = fullname) %>%
-    mutate(CanopyPosition = 'sun')
+    rename(code = fullname)
 mrg <- merge_with_sql(samples, 'samples')
 
-# Load all spectral data
-library(reshape2)
-spec_path <- file.path(accp_path, "leafspec")
-spec_files <- list.files(spec_path, "sp.dat$")
-refl_list <- list()
-dry_list <- character()
-PA_list <- character()
-dat_list <- list()
-for (f in spec_files) {
-    dry <- "fresh"
-    type <- 'pseudo-absorbance'
-    if (grepl("_d_sp.dat", f)) dry <- "dry"
-    if (grepl('jr_f_sp.dat', f)) type <- 'reflectance'
-    fname <- file.path(spec_path, f)
-    rawdat <- fread(fname)
-    dat <- rawdat %>% select(-band)
-    dat_melt <- melt(dat, id.vars = 'wavelength', 
-                     variable.name = 'samples.code') %>%
-        mutate(freshdry = dry,
-               fname = f,
-               type = type) %>%
-        filter(value > -0.5)
-    dat_list[[f]] <- dat_melt
-}
-accp_spec <- rbindlist(dat_list)
-rm(dat_list, dat_melt, dat)
+# Instrument
+# TODO: Fill in instrument
 
-specinfo <- accp_spec %>%
-    distinct(samples.code, freshdry, type) %>%
-    left_join(traits_dat_raw[, .(samples.code, fullname)])
-# Doesn't match up...?
+# Spec method
+# TODO: Fill in spec method
 
-# Condense data down to only matching spectra-trait pairs
-keep_names <- intersect(names(refl_list), traits_dat_sp[, SampleName])
-traits_dat <- traits_dat_sp[SampleName %in% keep_names] %>%
-    .[, Reflectance := refl_list[SampleName]] %>%
-    .[, FreshDry := dry_list[SampleName]] %>%
-    .[, SpecialSpec := PA_list[SampleName]] %>%
-    subToCols()
+# Spec_info table
+specinfo <- all_samples %>%
+    filter(!is.na(fname)) %>%
+    select(samplecode=fullname, type, sampleprep)
+mrg <- merge_with_sql(specinfo, 'spectra_info')
 
-#saveRDS(traits_dat, file = "processed-spec-data/accp.rds")
+specid <- specdb %>% 
+    tbl('spectra_info') %>%
+    left_join(tbl(specdb, 'samples') %>% 
+               select(-comment)) %>%
+    filter(projectcode == project.code) %>%
+    select(samplecode, spectraid = id) %>%
+    collect() %>%
+    setDT()
 
-# Global variables
+# Spectra table
+specdata <- accp_spec %>%
+    left_join(all_samples %>% select(samplecode = fullname, samplename)) %>%
+    select(samplecode, wavelength, value) %>%
+    left_join(specid) %>%
+    select(-samplecode)
+mrg <- merge_with_sql(specdata, 'spectra_data')
 
+# Traits table
+traits <- all_samples %>%
+    select(samplecode = fullname, starts_with('leaf_'), -leaf_wgt) %>%
+    mutate_if(is.numeric, as.numeric) %>%
+    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+
+trait_info <- traits %>% 
+    distinct(trait) %>%
+    .[grepl('_pct', trait), unit := '%'] %>%
+    .[trait == 'leaf_water_thickness', unit := 'kg m-2']
+
+mrg <- merge_with_sql(trait_info, 'trait_info')
+mrg <- merge_with_sql(traits, 'trait_data')

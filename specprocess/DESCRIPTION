@@ -7,7 +7,7 @@ Depends:
     data.table,
     dplyr,
     RPostgreSQL,
-    units
+    udunits2
 License: The MIT License
 Encoding: UTF-8
 LazyData: true
