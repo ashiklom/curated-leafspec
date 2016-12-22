@@ -1,0 +1,14 @@
+Package: specprocess
+Title: Helper Functions for Processing Spectra and Trait Data
+Version: 0.0.0.9000
+Authors@R: person("Alexey", "Shiklomanov", email = "ashiklom@bu.edu", role = c("aut", "cre"))
+Depends:
+    dtplyr,
+    data.table,
+    dplyr,
+    RPostgreSQL,
+    units
+License: The MIT License
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 5.0.1

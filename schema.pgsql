@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS sites CASCADE;
 DROP TABLE IF EXISTS plots CASCADE;
 DROP TABLE IF EXISTS species CASCADE;
+DROP TABLE IF EXISTS species_dict CASCADE;
 DROP TABLE IF EXISTS samples CASCADE;
 DROP TABLE IF EXISTS trait_info CASCADE;
 DROP TABLE IF EXISTS instruments CASCADE;
@@ -17,7 +18,7 @@ DROP TABLE IF EXISTS spectra_data CASCADE;
 /* Metadata tables */
 CREATE TABLE projects(
     ID bigserial PRIMARY KEY,
-    Code text,
+    Code text UNIQUE,
     Description text,
     Affiliation text,
     PointOfContact text,
@@ -27,15 +28,15 @@ CREATE TABLE projects(
 
 CREATE TABLE sites(
     ID bigserial PRIMARY KEY,
-    Code text,
+    Code text UNIQUE, 
     Name text,
     Comment text
 );
 
 CREATE TABLE plots(
     ID bigserial PRIMARY KEY,
-    SiteID bigint REFERENCES sites (ID),
-    Code text,
+    SiteCode text REFERENCES sites (Code),
+    Code text UNIQUE,
     Name text,
     Latitude numeric,
     Longitude numeric,
@@ -44,30 +45,44 @@ CREATE TABLE plots(
 
 CREATE TABLE species(
     ID bigserial PRIMARY KEY,
-    Code text,
+    Code text UNIQUE,
     CodeType text,
-    ScientificName text UNIQUE,
+    ScientificName text,
     Genus text,
     Species text,
     Subspecies text,
+    Variety text,
+    SubVariety text,
+    Forma text,
     Family text,
     Authority text,
-    Variety text,
     TryID bigint,
     Comment text
 );
 
+CREATE TABLE species_dict(
+    ID bigserial PRIMARY KEY,
+    DataCode text,
+    ProjectCode text REFERENCES projects (Code),
+    SpeciesCode text REFERENCES species (Code),
+    Comment text,
+    CONSTRAINT unique_datacode_project 
+        UNIQUE (DataCode, ProjectCode)
+);
+
 CREATE TABLE samples(
     ID bigserial PRIMARY KEY,
-    FullName text UNIQUE,
-    ProjectID bigint REFERENCES projects (ID),
-    Name text,
+    Code text UNIQUE,
+    ProjectCode text REFERENCES projects (Code),
     Year integer,
     CollectionDate date,
-    PlotID bigint REFERENCES plots (ID),
-    SpeciesID bigint REFERENCES species (ID),
-    Comment text,
-    UNIQUE (Name, ProjectID)
+    PlotCode text REFERENCES plots (Code),
+    SpeciesCode text REFERENCES species (Code),
+    CanopyPosition text,
+    NeedleOldNew text,
+    NeedleAge text,
+    OtherCondition text,
+    Comment text
 );
 
 CREATE TABLE trait_info(
@@ -97,19 +112,22 @@ CREATE TABLE specmethods(
 
 CREATE TABLE spectra_info(
     ID bigserial PRIMARY KEY,
-    SampleID bigint REFERENCES samples (ID),
+    SampleCode text REFERENCES samples (Code),
     Type text 
         CONSTRAINT legal_spectra_type 
-        CHECK (Type = 'reflectance' OR Type = 'transmittance' OR Type = 'pseudo-absorbance'),
+        CHECK (Type = 'reflectance' OR 
+                Type = 'transmittance' OR 
+                Type = 'pseudo-absorbance'),
     SpecMethodID bigint REFERENCES specmethods (ID),
+    FreshDry text,
     Comment text
 );
 
 /* Data tables */
 CREATE TABLE trait_data(
     ID bigserial PRIMARY KEY,
-    SampleID bigint REFERENCES samples (ID),
-    TraitID bigint REFERENCES trait_info (ID),
+    SampleCode text REFERENCES samples (Code),
+    Trait text REFERENCES trait_info (Trait),
     Value numeric,
     Comment text
 );
@@ -120,4 +138,3 @@ CREATE TABLE spectra_data(
     Wavelength numeric CONSTRAINT legal_wavelength CHECK (Wavelength > 0),
     Value numeric
 );
-    
