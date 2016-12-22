@@ -1,11 +1,24 @@
-#` ---
-#` title: FFT data processing
-#' author: Alexey Shiklomanov
-#' ---
-#' sitename <- "Ispra"
-#' sitedesc <- "Joint Research Center, Ispra, Italy"
-#' site_lat <- 45.803
-#' site_lon <- 8.630
+library(specprocess)
+specdb <- src_postgres('leaf_spectra')
+data_path <- 'data/lopex'
+projectcode <- 'lopex'
+
+# Set site and plot tables
+sites <- tibble(
+    code = 'lopex.ispra',
+    description = 'Joint Research Center, Ispra, Italy'
+)
+merge_with_sql(sites, 'sites')
+
+plots <- tibble(
+    code = 'lopex.ispra',
+    description = 'Joint Research Center, Ispra, Italy',
+    sitecode = 'lopex.ispra',
+    latitude = 45.803,
+    longitude = 8.630
+)
+merge_with_sql(plots, 'plots')
+
 #custom_matches <- c("Lycopersicum esculentum" = 1314,  # Tomato
                     #"Populus x canadensis" = 2808) # Carolina poplar 
 #' specinfo_check <- lopex.uniqspec %>%
@@ -15,25 +28,17 @@
 #'            Comments = "See http://teledetection.ipgp.jussieu.fr/opticleaf/lopex.htm#spectral for more info") %>%
 #'     mergeWithSQL(db, "specInfo", ., 'SpectraName')
 
-#' # Setup
-
-#' Source common script.
-source("common.R")
-project_code <- "LOPEX"
-sitename <- "Ispra"
-
 #' Set paths for LOPEX data
-PATH.LOPEX <- file.path("raw", "LOPEX")
-PATH.chem <- file.path(PATH.LOPEX, "LDB_lopex1993.csv")
-PATH.spec <- file.path(PATH.LOPEX, "spec")
+PATH.chem <- file.path(data_path, "LDB_lopex1993.csv")
+PATH.spec <- file.path(data_path, "spec")
 
 #' Load main data.
 #species.info <- fread(PATH.speciesinfo, header=TRUE)
 lopex.chem <- fread(PATH.chem, header=TRUE) %>%
     setnames("Latin Name", "RawSpecies") %>%
-    mutate(Project = project_code,
-           SampleYear = 1993,
-           Site = sitename)
+    mutate(projectcode = projectcode,
+           year = 1993,
+           sitecode = sites$code)
 
 #' Fill in species names and assign ID to each leaf and spectrum.
 species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"
