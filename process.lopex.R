@@ -34,78 +34,96 @@ PATH.spec <- file.path(data_path, "spec")
 
 #' Load main data.
 #species.info <- fread(PATH.speciesinfo, header=TRUE)
+species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"
 lopex.chem <- fread(PATH.chem, header=TRUE) %>%
-    setnames("Latin Name", "RawSpecies") %>%
+    setnames("Latin Name", "datacode") %>%
     mutate(projectcode = projectcode,
            year = 1993,
-           sitecode = sites$code)
-
-#' Fill in species names and assign ID to each leaf and spectrum.
-species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"
-j <- 0
-for(i in 1:nrow(lopex.chem)){
-    if(lopex.chem[i, RawSpecies] == ""){
-        lopex.chem[i, RawSpecies := lopex.chem[i-1, RawSpecies]]
-        k <- k + 1
-    } else {
-        j <- j + 1
-        k <- 1
-    }
-    lopex.chem[i, SampleName := sprintf("%s_Leaf%0.2d", 
-                                    gsub(species.rxp, "\\1-\\2", RawSpecies), j)]
-}
-
-#' Replace "-999" and "0" with NA values
-lopex.chem <- lopex.chem[, lapply(.SD, replace.na)] %>%
-    .[, FullName := paste(Project, SampleName, SampleYear,
-                          sep = id_separator)]
+           sitecode = sites$code,
+           plotcode = plots$code) %>%
+    .[datacode == '', datacode := NA] %>%
+    .[, datacode := datacode[1], by = cumsum(!is.na(datacode))] %>%
+    .[, samplename := sprintf("%s_Leaf%0.2d", gsub(species.rxp, "\\1-\\2", datacode), 1:.N),
+      by = datacode] %>%
+    .[grepl('Vitis vinifera.*Sylvestris', datacode),
+      samplename := gsub('Vit-vin_', 'Vit-vin-syl_', samplename)] %>%
+    .[, lapply(.SD, replace.na)] %>%
+    .[, samplecode := paste(projectcode, samplename, year, sep = '|')] %>%
+    setkey(samplecode)
 
 #' Read in reflectance and transmittance data
-setkey(lopex.chem, FullName)
-source("read_spectrum.R")
-
 refl_list <- list()
 trans_list <- list()
-
-for (ID in lopex.chem[, unique(FullName)]) {
+for (ID in lopex.chem[, unique(samplecode)]) {
     refl_files <- lopex.chem[ID, Refl_file]
     refl_files_full <- file.path(PATH.spec, refl_files)
-    refl_list[[ID]] <- read_spectrum(refl_files_full)
-    trans_files <- lopex.chem[ID, Trans_file]
+    refl_list[[ID]] <- fread(refl_files_full) %>%
+        setnames(c('wavelength', 'value')) %>%
+        mutate(samplecode = ID,
+               fname = refl_files,
+               type = 'reflectance')
+    trans_files <- lopex.chem[ID, Trans_file] 
     trans_files_full <- file.path(PATH.spec, trans_files)
-    trans_list[[ID]] <- read_spectrum(trans_files_full)
+    trans_list[[ID]] <- fread(trans_files_full) %>%
+        setnames(c('wavelength', 'value')) %>%
+        mutate(samplecode = ID,
+               fname = refl_files,
+               type = 'transmittance')
 }
+specdat <- rbind(rbindlist(refl_list), rbindlist(trans_list))
 
-lopex.chem.uniq <- lopex.chem[!duplicated(FullName)] %>%
-    .[, Reflectance := refl_list[FullName]] %>%
-    .[, Transmittance := trans_list[FullName]]
+names_dict <- c("C_C" = "leaf_C_pct_mass",
+                "C_H" = "leaf_H_pct_mass",
+                "C_O" = "leaf_O_pct_mass",
+                "C_N" = "leaf_N_pct_mass")
 
-names_dict <- c("N" = "leaf_nlayers",
-                "C_a" = "leaf_chlorophyll_a",
-                "C_b" = "leaf_chlorophyll_b",
-                "C_ab" = "leaf_chlorophyll_total",
-                "C_car" = "leaf_carotenoid_total",
-                "C_anth" = "leaf_anthocyanin_total",
-                "C_C" = "leaf_C_percent",
-                "C_H" = "leaf_H_percent",
-                "C_O" = "leaf_O_percent",
-                "C_N" = "leaf_N_percent")
-
-
-lopex.traits <- lopex.chem.uniq %>%
+lopex.traits <- lopex.chem %>%
     rename_(.dots = setNames(names(names_dict), names_dict)) %>%
-    .[, leaf_mass_per_area := LMA * 10000] %>%
-    .[, leaf_water_content := EWT * 10000] %>%
-    .[, leaf_CN_ratio := leaf_C_percent/leaf_N_percent] %>%
-    .[, leaf_protein_percent := 0.5*(C_prot1 + C_prot2)] %>%
-    .[, leaf_cellulose_percent := 0.5*(C_cell1 + C_cell2)] %>%
-    .[, leaf_lignin_percent := 0.5*(C_lign1 + C_lign2)] %>%
+    .[, leaf_chla_area := ud.convert(C_a, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_chlb_area := ud.convert(C_b, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_chltot_area := ud.convert(C_ab, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_cartot_area := ud.convert(C_car, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_anth_area := ud.convert(C_anth, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_mass_per_area := ud.convert(LMA, 'g cm-2', 'kg m-2')] %>%
+    .[, leaf_water_thickness := ud.convert(EWT, 'g cm-2', 'kg m-2')] %>%
+    .[, leaf_CN_ratio_mass := leaf_C_pct_mass/leaf_N_pct_mass] %>%
+    .[, leaf_protein_pct_mass := 0.5*(C_prot1 + C_prot2)] %>%
+    .[, leaf_cellulose_pct_mass := 0.5*(C_cell1 + C_cell2)] %>%
+    .[, leaf_lignin_pct_mass := 0.5*(C_lign1 + C_lign2)] %>%
     .[!(is.na(C_star1) | is.na(C_star2)),
-        leaf_starch_percent := 0.5*(C_star1 + C_star2)] %>%
+        leaf_starch_pct_mass := 0.5*(C_star1 + C_star2)] %>%
     .[(is.na(C_star1) & !is.na(C_star2)),
-        leaf_starch_percent := C_star2] %>%
+        leaf_starch_pct_mass := C_star2] %>%
     .[(is.na(C_star2) & !is.na(C_star1)),
-        leaf_starch_percent := C_star2] %>%
-    subToCols
+        leaf_starch_pct_mass := C_star2]
 
-saveRDS(lopex.traits, file = "processed-spec-data/lopex.rds")
+spec_samples <- specdat %>% distinct(samplecode)
+
+chem_samples <- lopex.traits %>%
+    distinct(samplecode, projectcode, year, sitecode, plotcode, samplename, datacode) %>%
+    left_join(tbl(specdb, 'species_dict') %>% 
+              select(-id, -comment) %>% 
+              collect %>% 
+              setDT) %>%
+    select(-datacode)
+
+samples <- full_join(spec_samples, chem_samples) %>% rename(code = samplecode)
+merge_with_sql(samples, 'samples')
+
+spectra_info <- specdat %>% distinct(samplecode, type)
+merge_with_sql(spectra_info, 'spectra_info')
+
+traits <- lopex.traits %>%
+    select(samplecode, starts_with('leaf_')) %>% 
+    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+
+trait_info <- traits %>%
+    distinct(trait) %>%
+    .[grepl('_pct', trait), unit := '%'] %>%
+    .[grepl('_area|_thickness', trait), unit := 'kg m-2'] %>%
+    .[grepl('ratio', trait), unit := 'unitless']
+
+merge_with_sql(trait_info, 'trait_info')
+merge_with_sql(traits, 'trait_data')
+
+#saveRDS(lopex.traits, file = "processed-spec-data/lopex.rds")
