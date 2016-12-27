@@ -3,8 +3,11 @@
 #' @export
 merge_with_sql <- function(input, tablename, 
                            dbname = 'leaf_spectra',
-                           by = NULL) {
+                           by = NULL, verbose = FALSE) {
     db <- src_postgres('leaf_spectra')
+    if (isTRUE(verbose)) {
+        message('Copying input...')
+    }
     input2 <- copy_to(db, input,
                       name = 'input', 
                       temporary = TRUE)
@@ -12,11 +15,17 @@ merge_with_sql <- function(input, tablename,
     columns <- colnames(src_table)
     newcolumns <- colnames(input)
     newcolumns <- newcolumns[newcolumns %in% columns]
+    if (isTRUE(verbose)) {
+        message('Performing anti_join...')
+    }
     newinput <- anti_join(input2, src_table, by = by)
     newinput <- compute(newinput, name = 'temporary')
     drp <- dropifhas(db, 'input')
     n_added <- collect(count(newinput))$n
     if (n_added > 0) {
+        if (isTRUE(verbose)) {
+            message('Inserting data...')
+        }
         insert <- sql(paste('INSERT INTO',
                             tablename,
                             escape(ident(newcolumns), 

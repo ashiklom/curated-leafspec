@@ -4,7 +4,8 @@
 \alias{merge_with_sql}
 \title{Merge data table into PostgreSQL database}
 \usage{
-merge_with_sql(input, tablename, dbname = "leaf_spectra", by = NULL)
+merge_with_sql(input, tablename, dbname = "leaf_spectra", by = NULL,
+  verbose = FALSE)
 }
 \description{
 Merge data table into PostgreSQL database
