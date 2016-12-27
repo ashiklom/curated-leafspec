@@ -113,6 +113,13 @@ merge_with_sql(samples, 'samples')
 spectra_info <- specdat %>% distinct(samplecode, type)
 merge_with_sql(spectra_info, 'spectra_info')
 
+spectra_data <- specdat %>%
+    left_join(tbl(specdb, 'spectra_info') %>%
+              select(samplecode, spectraid = id) %>%
+              collect %>% 
+              setDT)
+merge_with_sql(spectra_data, 'spectra_data')
+
 traits <- lopex.traits %>%
     select(samplecode, starts_with('leaf_')) %>% 
     melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
