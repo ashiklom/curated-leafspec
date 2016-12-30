@@ -1,10 +1,10 @@
-DATA := accp 
-#angers lopex nasa_fft ngee_arctic ngee_tropics yang_pheno
+DATA := accp lopex angers
+#nasa_fft ngee_arctic ngee_tropics yang_pheno
 #TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
 .PHONY: all clean reset
 
-all: reset $(DATA)
+all: install reset $(DATA)
 
 processed-spec-data/%.rds: process.%.R
 	Rscript $<
@@ -24,5 +24,5 @@ reset:
 	Rscript 02.species_table.R
 	Rscript 03.species_dict.R
 
-accp:
-	Rscript process.accp.R
+%: process.%.R
+	Rscript $<

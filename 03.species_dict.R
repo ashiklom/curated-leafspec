@@ -12,6 +12,4 @@ dict <- raw2code %>%
            speciescode = SpeciesCode) %>%
     mutate(projectcode = tolower(projectcode))
 
-specdb <- src_postgres('leaf_spectra')
-
-mrg <- merge_with_sql(dict, 'species_dict')
+merge_with_sql(dict, 'species_dict', key = 'speciescode')

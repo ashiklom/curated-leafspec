@@ -14,15 +14,17 @@ DROP TABLE IF EXISTS specmethods CASCADE;
 DROP TABLE IF EXISTS spectra_info CASCADE;
 DROP TABLE IF EXISTS trait_data CASCADE;
 DROP TABLE IF EXISTS spectra_data CASCADE;
+DROP TABLE IF EXISTS sample_condition CASCADE;
+DROP TABLE IF EXISTS sample_condition_info CASCADE;
 
 /* Metadata tables */
 CREATE TABLE projects(
     ID bigserial PRIMARY KEY,
     Code text UNIQUE,
     Description text,
-    Affiliation text,
     PointOfContact text,
     Email text,
+    DOI text,
     Comment text
 );
 
@@ -85,18 +87,18 @@ CREATE TABLE samples(
     Comment text
 );
 
+CREATE TABLE sample_condition_info(
+    ID bigserial PRIMARY KEY,
+    Condition text UNIQUE,
+    Description text,
+    Comment text
+);
+
 CREATE TABLE sample_condition(
     ID bigserial PRIMARY KEY,
     SampleCode text REFERENCES samples (Code),
     Condition text REFERENCES sample_condition_info (Condition),
     Value text,
-    Comment text
-);
-
-CREATE TABLE sample_condition_info(
-    ID bigserial PRIMARY KEY,
-    Condition text,
-    Description text,
     Comment text
 );
 
@@ -110,7 +112,7 @@ CREATE TABLE trait_info(
 
 CREATE TABLE instruments(
     ID bigserial PRIMARY KEY,
-    Name text,
+    Name text UNIQUE,
     MinWavelength real,
     MaxWavelength real,
     SpectralResolution real,

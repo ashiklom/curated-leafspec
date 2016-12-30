@@ -8,7 +8,7 @@ library(specprocess)
 specdb <- src_postgres('leaf_spectra')
 projectcode <- 'angers'
 
-#projects <- tibble(
+#projects <- data.table(
     #projectcode = 'angers',
     #description = 'Angers, France spectra from INRA',
     #doi = '10.1016/j.rse.2008.02.012',
@@ -16,12 +16,12 @@ projectcode <- 'angers'
     #email = 'feretjb@cesbio.cnes.fr')
 #merge_with_sql(projects, 'projects')
 
-sites <- tibble(
+sites <- data.table(
     code = 'angers.INRA',
     description = 'INRA Centra in Angers, France')
 merge_with_sql(sites, 'sites')
 
-plots <- tibble(
+plots <- data.table(
     code = sites$code,
     description = sites$description,
     latitude = 47.47,
@@ -93,14 +93,14 @@ samples <- full_join(spec_samples, chem_samples) %>% rename(code = samplecode)
 merge_with_sql(samples, 'samples')
 
 spectra_info <- specdat %>% distinct(samplecode, type)
-merge_with_sql(spectra_info, 'spectra_info')
+merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
 
 spectra_data <- specdat %>%
     left_join(tbl(specdb, 'spectra_info') %>%
               select(samplecode, spectraid = id) %>%
               collect %>% 
               setDT)
-merge_with_sql(spectra_data, 'spectra_data')
+merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
 
 traits <- angers.chem %>%
     select(samplecode, starts_with('leaf_')) %>% 
@@ -112,5 +112,5 @@ trait_info <- traits %>%
     .[grepl('_area|_thickness', trait), unit := 'kg m-2'] %>%
     .[grepl('ratio', trait), unit := 'unitless']
 
-merge_with_sql(trait_info, 'trait_info')
-merge_with_sql(traits, 'trait_data')
+merge_with_sql(trait_info, 'trait_info', 'trait')
+merge_with_sql(traits, 'trait_data', 'samplecode')

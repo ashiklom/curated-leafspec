@@ -4,10 +4,19 @@
 \alias{merge_with_sql}
 \title{Merge data table into PostgreSQL database}
 \usage{
-merge_with_sql(input, tablename, dbname = "leaf_spectra", by = NULL,
-  verbose = FALSE)
+merge_with_sql(input, tablename, key = "code", dbname = "leaf_spectra", ...)
 }
 \description{
 Merge data table into PostgreSQL database
+}
+\examples{
+library(specprocess)
+tablename <- 'projects'
+input <- data.table(
+   code = 'test',
+   description = 'example')
+key <- 'code'
+dbname <- 'leaf_spectra'
+merge_with_sql(input, tablename, key = 'code')
 }
 

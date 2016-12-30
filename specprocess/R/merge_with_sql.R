@@ -1,47 +1,35 @@
 #' Merge data table into PostgreSQL database
 #'
 #' @export
-merge_with_sql <- function(input, tablename, 
-                           dbname = 'leaf_spectra',
-                           by = NULL, verbose = FALSE) {
+#' @examples
+#' library(specprocess)
+#' tablename <- 'projects'
+#' input <- data.table(
+#'    code = 'test',
+#'    description = 'example')
+#' key <- 'code'
+#' dbname <- 'leaf_spectra'
+#' merge_with_sql(input, tablename, key = 'code')
+merge_with_sql <- function(input, tablename, key = 'code',
+                           dbname = 'leaf_spectra', ...) {
     db <- src_postgres('leaf_spectra')
-    if (isTRUE(verbose)) {
-        message('Copying input...')
+    sql_table <- tbl(db, tablename)
+    sql_cols <- tbl_vars(sql_table)
+    input_cols <- colnames(input)
+    keep_cols <- input_cols[input_cols %in% sql_cols]
+    input_sel <- select_(input, .dots=keep_cols)
+    sql_nrow <- collect(count(sql_table))[['n']]
+    if (sql_nrow > 0) {
+        sql_keys <- collect(distinct_(sql_table, key))[[key]]
+        input_sub <- input_sel[!input_sel[[key]] %in% sql_keys,]
+    } else {
+        input_sub <- input_sel
     }
-    input2 <- copy_to(db, input,
-                      name = 'input', 
-                      temporary = TRUE)
-    src_table <- tbl(db, tablename)
-    columns <- colnames(src_table)
-    newcolumns <- colnames(input)
-    newcolumns <- newcolumns[newcolumns %in% columns]
-    if (isTRUE(verbose)) {
-        message('Performing anti_join...')
-    }
-    newinput <- anti_join(input2, src_table, by = by)
-    newinput <- compute(newinput, name = 'temporary')
-    drp <- dropifhas(db, 'input')
-    n_added <- collect(count(newinput))$n
+    n_added <- nrow(input_sub)
     if (n_added > 0) {
-        if (isTRUE(verbose)) {
-            message('Inserting data...')
-        }
-        insert <- sql(paste('INSERT INTO',
-                            tablename,
-                            escape(ident(newcolumns), 
-                                   paren = TRUE),
-                            'SELECT', 
-                            escape(ident(newcolumns)),
-                                   #paren = TRUE),
-                            'from temporary'))
-        send <- dbSendQuery(db$con, insert)
+        dt2sql_write(db, tablename, input_sub, ...) 
     }
-    drp <- dropifhas(db, 'temporary')
+    message('Added ', n_added, ' rows to table ', tablename)
     return(n_added)
 }
 
-dropifhas <- function(db, tablename) {
-    if (isTRUE(db_has_table(db$con, tablename))) {
-        db_drop_table(db$con, tablename)
-    }
-}

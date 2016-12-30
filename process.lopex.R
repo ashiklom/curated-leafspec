@@ -4,13 +4,13 @@ data_path <- 'data/lopex'
 projectcode <- 'lopex'
 
 # Set site and plot tables
-sites <- tibble(
+sites <- data.table(
     code = 'lopex.ispra',
     description = 'Joint Research Center, Ispra, Italy'
 )
 merge_with_sql(sites, 'sites')
 
-plots <- tibble(
+plots <- data.table(
     code = 'lopex.ispra',
     description = 'Joint Research Center, Ispra, Italy',
     sitecode = 'lopex.ispra',
@@ -19,14 +19,12 @@ plots <- tibble(
 )
 merge_with_sql(plots, 'plots')
 
-#custom_matches <- c("Lycopersicum esculentum" = 1314,  # Tomato
-                    #"Populus x canadensis" = 2808) # Carolina poplar 
-#' specinfo_check <- lopex.uniqspec %>%
-#'     mutate(Instrument = "Perkin Elmer Lambda 19 double-beam spectrophotometer (BaSO4 integrating sphere)",
-#'            Apparatus = "Integrating sphere", 
-#'            Calibration = "Spectralon ratio", 
-#'            Comments = "See http://teledetection.ipgp.jussieu.fr/opticleaf/lopex.htm#spectral for more info") %>%
-#'     mergeWithSQL(db, "specInfo", ., 'SpectraName')
+# specinfo_check <- lopex.uniqspec %>%
+#     mutate(Instrument = "Perkin Elmer Lambda 19 double-beam spectrophotometer (BaSO4 integrating sphere)",
+#            Apparatus = "Integrating sphere", 
+#            Calibration = "Spectralon ratio", 
+#            Comments = "See http://teledetection.ipgp.jussieu.fr/opticleaf/lopex.htm#spectral for more info") %>%
+#     mergeWithSQL(db, "specInfo", ., 'SpectraName')
 
 #' Set paths for LOPEX data
 PATH.chem <- file.path(data_path, "LDB_lopex1993.csv")
@@ -36,18 +34,18 @@ PATH.spec <- file.path(data_path, "spec")
 #species.info <- fread(PATH.speciesinfo, header=TRUE)
 species.rxp <- "([[:alpha:]]{3})[[:alpha:]]* x? ?([[:alpha:]]{3})[[:alpha:]]* *.*"
 lopex.chem <- fread(PATH.chem, header=TRUE) %>%
-    setnames("Latin Name", "datacode") %>%
+    rename(datacode = `Latin Name`) %>%
+    select(-`Plant Type`, -`English Name`) %>%
+    mutate_if(is.numeric, na_if, y=-999) %>%
     mutate(projectcode = projectcode,
            year = 1993,
            sitecode = sites$code,
-           plotcode = plots$code) %>%
-    .[datacode == '', datacode := NA] %>%
+           plotcode = plots$code,
+           datacode = na_if(datacode, '')) %>%
     .[, datacode := datacode[1], by = cumsum(!is.na(datacode))] %>%
-    .[, samplename := sprintf("%s_Leaf%0.2d", gsub(species.rxp, "\\1-\\2", datacode), 1:.N),
-      by = datacode] %>%
+    .[, samplename := sprintf("%s_Leaf%0.2d", gsub(species.rxp, "\\1-\\2", datacode), 1:.N)] %>%
     .[grepl('Vitis vinifera.*Sylvestris', datacode),
       samplename := gsub('Vit-vin_', 'Vit-vin-syl_', samplename)] %>%
-    .[, lapply(.SD, replace.na)] %>%
     .[, samplecode := paste(projectcode, samplename, year, sep = '|')] %>%
     setkey(samplecode)
 
@@ -111,14 +109,14 @@ samples <- full_join(spec_samples, chem_samples) %>% rename(code = samplecode)
 merge_with_sql(samples, 'samples')
 
 spectra_info <- specdat %>% distinct(samplecode, type)
-merge_with_sql(spectra_info, 'spectra_info')
+merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
 
 spectra_data <- specdat %>%
     left_join(tbl(specdb, 'spectra_info') %>%
               select(samplecode, spectraid = id) %>%
               collect %>% 
               setDT)
-merge_with_sql(spectra_data, 'spectra_data')
+merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
 
 traits <- lopex.traits %>%
     select(samplecode, starts_with('leaf_')) %>% 
@@ -130,7 +128,7 @@ trait_info <- traits %>%
     .[grepl('_area|_thickness', trait), unit := 'kg m-2'] %>%
     .[grepl('ratio', trait), unit := 'unitless']
 
-merge_with_sql(trait_info, 'trait_info')
-merge_with_sql(traits, 'trait_data')
+merge_with_sql(trait_info, 'trait_info', 'trait')
+merge_with_sql(traits, 'trait_data', 'samplecode')
 
 #saveRDS(lopex.traits, file = "processed-spec-data/lopex.rds")
