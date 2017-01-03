@@ -1,9 +1,10 @@
-source("common.R")
+library(specprocess)
 library(readxl)
 library(lubridate)
+specdb <- src_postgres('leaf_spectra')
 
 #' Projects table
-projname <- "yang_pheno"
+project_code <- "yang_pheno"
 
 #projectname <- "Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests"
 
@@ -19,18 +20,21 @@ projname <- "yang_pheno"
 # All trees are Red Oak
 
 ##' Sites table
-#mv_name <- "Martha's Vineyard"
-#mv_desc <- "Martha's Vineyard, MA, USA"
-#mv_lat <- 41.362
-#mv_lon <- -70.578
-#mv_site <- tibble(
-    #SiteName = mv_name,
-    #SiteDescription = mv_desc,
-    #SiteLatitude = mv_lat,
-    #SiteLongitude = mv_lon) %>%
-    #mergeWithSQL(db, "sites", ., "SiteName")
-#mv_siteID <- filter(mv_site, SiteName == sitename) %>% 
-    #select(SiteID) %>% .[[1]]
+sites_string <- 
+'code, description
+yang_pheno.MV, "Martha\'s Vineyard, MA, USA"
+yang_pheno.HF, "Harvard Forest, Petersham, MA, USA"'
+sites <- fread(input = sites_string)
+merge_with_sql(sites, 'sites', 'code')
+
+plots_string <- 
+'code, latitude, longitude
+yang_pheno.MV, 41.362, -70.578
+yang_pheno.HF, 42.531, -72.190'
+plots <- fread(input = plots_string) %>%
+    left_join(sites) %>%
+    mutate(sitecode = code)
+merge_with_sql(plots, 'plots', 'code')
 
 # HF
 # RO -- Red Oak
@@ -41,18 +45,19 @@ projname <- "yang_pheno"
 # Second number indicates leaves
 
 # Set up trait names
-traits <- c('leaf_chlorophyll_a' = 'Chla',
-            'leaf_chlorophyll_b' = 'Chlb',
-            'leaf_chlorophyll_total' = 'TotChl',
+traits <- c('leaf_chla_per_area' = 'Chla',
+            'leaf_chlb_per_area' = 'Chlb',
+            'leaf_chltot_per_area' = 'TotChl',
             'leaf_mass_per_area' = 'LMA',
-            'leaf_carotenoid_total' = 'Car',
-            'leaf_C_percent' = 'TotC',
-            'leaf_N_percent' = 'TotN')
+            'leaf_cartot_per_area' = 'Car',
+            'leaf_C_pct_mass' = 'TotC',
+            'leaf_N_pct_mass' = 'TotN')
 ntraits <- length(traits)
 
 readYang <- function(SampleYear, Site) {
-    fname <- sprintf("raw/Yang_etal/%d_%s_leaftraits_forShawn.xlsx", 
-                     SampleYear, Site)
+    rootdir <- 'data/yang_pheno'
+    fname <- sprintf("%s/%d_%s_leaftraits_forShawn.xlsx", 
+                     rootdir, SampleYear, Site)
     dat_list <- list()
     SampleNames <- character()
     is_MV <- SampleYear == 2011 & Site == "MV"
@@ -71,65 +76,99 @@ readYang <- function(SampleYear, Site) {
     }
 
     dat_full <- rbindlist(dat_list)
-    dat_trait <- dat_full %>% melt(id.vars = c("trait", "DOY"),
-                                  variable.name = "SampleName") %>%
-        dcast(DOY + SampleName ~ trait) %>%
-        setDT()
 
-    dat_trait <- dat_trait %>%
-        .[, c('Project', 'SampleYear', 'Site') := 
-          list(projname, SampleYear, Site)] %>%
-        .[, SampleName := paste(SampleName, DOY, sep="_")]
+    dat_trait <- dat_full %>% 
+        melt(id.vars = c("trait", "DOY"),
+             variable.name = 'barcode') %>%
+        dcast(DOY + barcode ~ trait) %>%
+        mutate(projectcode = project_code,
+               year = SampleYear,
+               sitecode = paste(projectcode, Site, sep = '.'),
+               plotcode = sitecode,
+               samplecode = paste(projectcode, 
+                                  paste(barcode, DOY, sep = '_'),
+                                  year, 
+                                  sep = '|'))
 
     species_cols <- c('RawSpecies')
-    species <- list(RO = list('Quercus rubra'),
-                    RM = list('Acer rubrum'),
-                    YB = list('Betula alleghaniensis'))
+    species <- c('RO' = 'Quercus rubra',
+                 'RM' = 'Acer rubrum',
+                 'YB' = 'Betula alleghaniensis')
     #species_cols <- c('species_scientific', 'species_code', 'species_common')
     #species <- list(RO = list('Quercus rubra', 'QURU', 'Red oak'),
                     #RM = list('Acer rubrum', 'ACRU', 'Red maple'),
                     #YB = list('Betula alleghaniensis', 'BEAL2', 'Yellow birch'))
 
     if (is_MV){
-        dat_trait[, (species_cols) := species[['RO']]]
+        dat_trait <- mutate(dat_trait, datacode = 'Quercus rubra')
     } else if (is_HF) {
-        dat_trait[, label := gsub('(RO|RM|YB).*', "\\1", SampleName)]
-        for (l in names(species)){
-            dat_trait[label == l, (species_cols) := species[[l]]]
-        }
-        dat_trait[, label := NULL]
+        dat_trait <- mutate(dat_trait, 
+                            label = gsub('(RO|RM|YB).*', "\\1", barcode),
+                            datacode = species[label]) %>% select(-label)
     }
 
     dat_trait <- dat_trait %>%
-        .[grep("U", SampleName), CanopyPosition := "top"] %>%
-        .[grep("L", SampleName), CanopyPosition := "bottom"] %>%
-        .[, FullName := paste(Project, SampleName, SampleYear, 
-                              sep = id_separator)]
+        mutate(sunshade = case_when(grepl('U', barcode) ~ 'sun',
+                                    grepl('L', barcode) ~ 'shade'))
+
+    samples_all <- dat_trait %>%
+        distinct(samplecode, projectcode, sitecode, plotcode, datacode, DOY, year) %>%
+        mutate(collectiondate = as.Date(paste(year, DOY, sep = '_'),
+                                        '%Y_%j')) %>%
+        left_join(tbl(specdb, 'species_dict') %>%
+                  filter(projectcode == project_code) %>%
+                  select(datacode, speciescode) %>%
+                  collect() %>%
+                  setDT()) %>%
+        select(-datacode)
+
+    rename(samples_all, code = samplecode) %>%
+        merge_with_sql('samples', 'code')
+
+    sample_condition <- dat_trait %>%
+        distinct(samplecode, sunshade) %>%
+        melt(id.vars = 'samplecode', variable.name = 'condition')
+    sample_condition_info <- distinct(sample_condition, condition)
+
+    merge_with_sql(sample_condition_info, 'sample_condition_info', 'condition')
+    merge_with_sql(sample_condition, 'sample_condition', 'samplecode')
+
+    trait_data <- dat_trait %>%
+        select(samplecode, starts_with('leaf_')) %>%
+        mutate_at(vars(matches('_(chl|car)')), ud.convert,
+                  u1 = 'ug cm-2', u2 = 'kg m-2') %>%
+        mutate(leaf_mass_per_area = ud.convert(leaf_mass_per_area,
+                                               'g m-2', 'kg m-2')) %>%
+        melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+
+    trait_info <- trait_data %>%
+        distinct(trait) %>%
+        mutate(unit = case_when(grepl('_pct_mass', .$trait) ~ '%',
+                                grepl('_per_area', .$trait) ~ 'kg m-2',
+                                TRUE ~ NA_character_))
+
+    merge_with_sql(trait_info, 'trait_info', 'trait')
+    merge_with_sql(trait_data, 'trait_data', 'samplecode')
 
     # Load spectral data
-
     getSpec <- function(fname) {
         spec <- fread(fname, header=FALSE) %>%
-            setnames(c("Wavelength", 
-                       dat_trait[DOY == doys[i], 
-                                 FullName])) %>%
-            .[Wavelength != 0] %>%
-            as.matrix() %>%
-            specobs()
-        if (all(!is.finite(spec))) return(NULL)
-        exclude <- apply(spec, 2, 
-                         function(x) all(!is.finite(x) | x == 0))
-
-        return(spec[, !exclude])
+            setnames(c("wavelength", 
+                       samples_all[DOY == doys[i], samplecode])) %>%
+            filter(wavelength != 0) %>%
+            melt(id.vars = 'wavelength', variable.name = 'samplecode', 
+                 na.rm = TRUE)
+        return(spec)
     }
 
-    doys <- dat_trait[, unique(DOY)] %>% sort
+    doys <- sort(samples_all[, unique(DOY)])
     if (is_MV) {
-        reflpath <- "raw/Yang_etal/2011-MV"
+        reflpath <- file.path(rootdir, "2011-MV")
     } else if (is_HF) {
-        reflpath <- "raw/Yang_etal/2012_HF/ref"
-        transpath <- "raw/Yang_etal/2012_HF/tra"
+        reflpath <- file.path(rootdir, "2012_HF/ref")
+        transpath <- file.path(rootdir, "2012_HF/tra")
     }
+
     refl_flist <- list.files(reflpath, ".csv", full.names = TRUE)
     stopifnot(length(refl_flist) == length(doys))
     if (is_HF) {
@@ -145,35 +184,35 @@ readYang <- function(SampleYear, Site) {
         if (is_HF) trans_list[[i]] <- getSpec(trans_flist[i])
     }
     
-    refl_list <- refl_list[!sapply(refl_list, is.null)]
-    refl_full <- do.call(cbind, refl_list) %>% wlmat2list() %>%
-        .[names(.) != "Wavelength"]
-    refl_dat <- data.table(FullName = names(refl_full)) %>%
-        .[, Reflectance := refl_full[FullName]]
+    refl_dat <- rbindlist(refl_list) %>%
+        mutate(type = 'reflectance')
 
     if (is_HF) {
-        trans_list <- trans_list[!sapply(trans_list, is.null)]
-        trans_full <- do.call(cbind, trans_list) %>% wlmat2list() %>%
-            .[names(.) != "Wavelength"]
-        trans_dat <- data.table(FullName = names(trans_full)) %>%
-            .[, Transmittance := trans_full[FullName]]
+        trans_dat <- rbindlist(trans_list) %>%
+            mutate(type = 'transmittance')
+        spectra_raw <- rbind(refl_dat, trans_dat)
+    } else {
+        spectra_raw <- refl_dat
     }
 
-    dat_trait <- merge(dat_trait, refl_dat, by = "FullName", 
-                       all = TRUE)
-    if (is_HF) {
-        dat_trait <- merge(dat_trait, trans_dat, by = "FullName", 
-                           all = TRUE)
-    }
+    spectra_info <- spectra_raw %>%
+        distinct(samplecode, type)
+    merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
 
-    out <- subToCols(dat_trait)
-    return(out)
+    spectra_data <- spectra_raw %>%
+        select(samplecode, wavelength, value) %>%
+        left_join(tbl(specdb, 'samples') %>%
+                  filter(projectcode == project_code) %>%
+                  select(samplecode = code) %>%
+                  left_join(tbl(specdb, 'spectra_info') %>%
+                            select(spectraid = id, samplecode)) %>%
+                  collect() %>%
+                  setDT()) %>%
+        select(spectraid, wavelength, value)
+    merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
 }
 
 ##options(error = recover)
 yang_mv <- readYang(2011, "MV")
 yang_hf <- readYang(2012, "HF")
-yang_dat <- rbind(yang_mv, yang_hf, fill = TRUE) %>% subToCols()
-fname <- sprintf("processed-spec-data/%s.rds", projname)
-saveRDS(yang_dat, file = fname)
 
