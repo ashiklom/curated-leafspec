@@ -1,5 +1,5 @@
-DATA := accp lopex angers
-#nasa_fft ngee_arctic ngee_tropics yang_pheno
+DATA := accp lopex angers nasa_fft ngee_arctic
+# ngee_tropics yang_pheno
 #TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
 .PHONY: all clean reset

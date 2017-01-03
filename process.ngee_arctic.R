@@ -1,11 +1,14 @@
-source("common.R")
+library(specprocess)
 library(readxl)
-library(magrittr)
 library(lubridate)
 
 projectcode <- "ngee_arctic"
+path_nga <- "data/ngee_arctic"
+specdb <- src_postgres('leaf_spectra')
 
-path_nga <- "raw/NGEE-Arctic"
+scale_wl <- function(., scale_factor = 0.01) {
+    mutate_at(., vars(starts_with('Wave_')), funs(. * scale_factor))
+}
 
 # Load spectral data
 speclist <- list()
@@ -14,16 +17,8 @@ spec_2013_file <- file.path(path_nga, "2013_data",
                             "NGEE-Arctic_2013_Spectra_and_Trait_Data_QA_v2_forR.csv")
 speclist[['2013']] <- fread(spec_2013_file, header = TRUE) %>%
     .[, SampleName := paste0('BNL', Sample_ID)] %>%
-    mutate(SampleYear = 2013, Site = 'Barrow')
-
-getwlcols <- function(dat) {
-    grep('Wave_', colnames(dat), value = TRUE)
-}
-
-scale_wl <- function(dat, scale_factor = 0.01) {
-    dat[, getwlcols(dat) := lapply(.SD, '*', 0.01), 
-        .SDcols = getwlcols(dat)]
-}
+    mutate(year = 2013, sitecode = 'ngee_arctic.Barrow') %>%
+    scale_wl()
 
 spec_2014_file <- file.path(path_nga, "2014_Data", 
                             "NGEE-Arctic_Barrow_2014_Leaf_GasExchange_Spectra.xlsx")
@@ -31,7 +26,7 @@ spec_2014_file <- file.path(path_nga, "2014_Data",
 speclist[['2014']] <- read_excel(spec_2014_file, sheet = 1) %>% 
     setDT() %>%
     setnames("Spectra", "SampleName") %>%
-    mutate(SampleYear = 2014, Site = 'Barrow') %>%
+    mutate(year = 2014, sitecode = 'ngee_arctic.Barrow') %>%
     scale_wl()
 
 spec_2015_file <- file.path(path_nga, "2015_Data",
@@ -39,7 +34,7 @@ spec_2015_file <- file.path(path_nga, "2015_Data",
 speclist[['2015']] <- read_excel(spec_2015_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2015, Site = 'Barrow') %>%
+    mutate(year = 2015, sitecode = 'ngee_arctic.Barrow') %>%
     scale_wl()
 
 spec_2016b_file <- file.path(path_nga, "2016_Data",
@@ -47,7 +42,7 @@ spec_2016b_file <- file.path(path_nga, "2016_Data",
 speclist[['2016b']] <- read_excel(spec_2016b_file, sheet = 1) %>%
     setDT() %>%
     setnames('Sample_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016, Site = 'Barrow') %>%
+    mutate(year = 2016, sitecode = 'ngee_arctic.Barrow') %>%
     scale_wl()
 
 spec_2016s_file <- file.path(path_nga, "2016_Data",
@@ -55,125 +50,190 @@ spec_2016s_file <- file.path(path_nga, "2016_Data",
 speclist[['2016s']] <- read_excel(spec_2016s_file, sheet = 2) %>%
     setDT() %>%
     setnames('BNL_Barcode', 'SampleName') %>%
-    mutate(SampleYear = 2016, Site = 'Seward_Kougarok') %>%
+    mutate(year = 2016, sitecode = 'ngee_arctic.Seward_Kougarok') %>%
     scale_wl()
 
-specdat_full <- rbindlist(speclist, fill = TRUE)
-specmat <- specdat_full %>%
-    select(contains("Wave_")) %>%
-    as.matrix() %>%
-    "colnames<-"(gsub('Wave_', '', colnames(.))) %>%
-    "rownames<-"(specdat_full[, SampleName]) %>%
-    rbind("Wavelength" = as.numeric(colnames(.)), .) %>%
-    t() %>%
-    wlmat2list
+specdat_full <- rbindlist(speclist, fill = TRUE) %>%
+    mutate(samplecode = paste(projectcode, SampleName, year, sep = '|'))
 
-specdat <- specdat_full %>% 
-    select(SampleName, SampleYear, Site) %>%
-    .[, Reflectance := specmat[SampleName]]
+samples_spec <- specdat_full %>%
+    select(-starts_with('Wave_')) %>%
+    .[!is.na(Spectrometer_GPS_Lat),
+      plotcode := as.character(1:.N),
+      .(Spectrometer_GPS_Lat, Spectrometer_GPS_Long)] %>%
+    select(samplecode, SampleName, year, sitecode, plotcode,
+           latitude = Spectrometer_GPS_Lat,
+           longitude = Spectrometer_GPS_Long) %>%
+    mutate(plotcode = paste(sitecode, plotcode, sep = '.'))
+
+spectra_data <- specdat_full %>%
+    select(samplecode, starts_with('Wave_')) %>%
+    melt(id.vars = 'samplecode', variable.name = 'wavelength') %>%
+    mutate(wavelength = as.numeric(gsub('Wave_', '', wavelength)))
 
 # Load main traits file
-traits_namesdict <- c('Sample_ID' = 'SampleName',
-                      'Perc_C' = 'leaf_C_percent',
-                      'Perc_N' = 'leaf_N_percent',
-                      'LMA_gDW_m2' = 'leaf_mass_per_area',
-                      'CN_ratio' = 'leaf_CN_ratio',
-                      'USDA_Species_Code' = 'RawSpecies')
-
 traits_main_file <- file.path(path_nga,
                               "NGEEArctic_BNL_leaf_C_N_LMA_2012-2015.xlsx")
 traits_main <- read_excel(traits_main_file, sheet = 2) %>%
     .[, !is.na(colnames(.)) & colnames(.) != ''] %>%
-    setnames(names(traits_namesdict), traits_namesdict) %>%
-    setDT() %>%
-    mutate(SampleYear = year(strptime(Measurement_Date, "%Y%m%d")),
-           DOY = yday(strptime(Measurement_Date, "%Y%m%d")),
-           Site = 'Barrow')
+    filter(!is.na(Sample_ID)) %>%
+    mutate_if(is.numeric, na_if, y=-9999) %>%
+    rename(SampleName = Sample_ID,
+           leaf_C_pct_mass = Perc_C,
+           leaf_N_pct_mass = Perc_N,
+           leaf_CN_ratio_mass = CN_ratio,
+           datacode = USDA_Species_Code) %>%
+    mutate(collectiondate = as.Date(strptime(Measurement_Date, "%Y%m%d")),
+           year = year(collectiondate),
+           sitecode = 'ngee_arctic.Barrow',
+           leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2'),
+           leaf_N_per_area = ud.convert(N_area_gDW_m2, 'g m-2', 'kg m-2'),
+           leaf_C_per_area = ud.convert(C_area_gDW_m2, 'g m-2', 'kg m-2')) %>%
+    select(SampleName, year, collectiondate, sitecode, datacode, 
+           starts_with('leaf_')) %>%
+    setDT()
 
 # Load pigment data for 2015
-chl_convert <- 1000 / (100^2)
 pigments_file <- file.path(path_nga, "2015_Data",
                            "NGEE-Arctic_Barrow_2015_leaf_pigment_extractions.xlsx")
 pigments <- read_excel(pigments_file, sheet = 2) %>%
     setnames('Barcode', 'SampleName') %>%
-    mutate(leaf_chlorophyll_a = Chl_a_mg_m2 * chl_convert,
-           leaf_chlorophyll_b = Chl_b_mg_m2 * chl_convert,
-           leaf_chlorophyll_total = Chl_a_plus_b_mg_m2 * chl_convert,
-           leaf_carotenoid_total = Tot_Car_mg_m2 * chl_convert, 
-           SampleYear = 2015, 
-           Site = 'Barrow') %>%
+    mutate(leaf_chla_per_area = ud.convert(Chl_a_mg_m2, 'mg m-2', 'kg m-2'),
+           leaf_chlb_per_area = ud.convert(Chl_b_mg_m2, 'mg m-2', 'kg m-2'),
+           leaf_chltot_per_area = ud.convert(Chl_a_plus_b_mg_m2, 'mg m-2', 'kg m-2'),
+           leaf_cartot_per_area = ud.convert(Tot_Car_mg_m2, 'mg m-2', 'kg m-2'),
+           year = 2015, 
+           sitecode = 'ngee_arctic.Barrow') %>%
+    select(SampleName, year, sitecode, 
+           leaf_area = Total_area_m2,
+           starts_with('leaf')) %>%
     setDT()
 
-# Get other pigment data from 2013
+# Get other trait data from 2013
 traits2013 <- speclist[['2013']] %>%
     select(-starts_with('Wave')) %>%
-    mutate(leaf_chlorophyll_a = Chl_a_g_m2 * (1000^2)/(100^2),
-           leaf_chlorophyll_b = Chl_b_g_m2 * (1000^2)/(100^2),
-           leaf_chlorophyll_total = leaf_chlorophyll_a + leaf_chlorophyll_b) %>%
-    select(SampleName, SampleYear, RawSpecies = USDA_Species,
-           contains('leaf_chlorophyll'))
-
-#traits2013[!is.na(Narea_gN_m2), SampleName] %in%
-    #nga_dat[!is.na(leaf_N_percent), SampleName]
+    mutate(leaf_chla_per_area = ud.convert(Chl_a_g_m2, 'g m-2', 'kg m-2'),
+           leaf_chlb_per_area = ud.convert(Chl_b_g_m2, 'g m-2', 'kg m-2'),
+           leaf_chltot_per_area = leaf_chla_per_area + leaf_chlb_per_area,
+           leaf_N_per_area = ud.convert(Narea_gN_m2, 'g m-2', 'kg m-2'), 
+           leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2')) %>%
+    select(SampleName, year, datacode = USDA_Species,
+           starts_with('leaf_', ignore.case = FALSE),
+           leaf_area = Total_Leaf_Area_m2)
 
 # Load other data from 2016
 seward_2016_lma_file <- file.path(path_nga, "2016_Data", 
                                   "2016KGsamples_LMA-edited.csv")
 seward_2016_lma <- fread(seward_2016_lma_file) %>%
     mutate(SampleName = paste0("BNL", Sample_Barcode), 
-           SampleYear = 2016,
-           DOY = yday(strptime(Measurement_Date, "%Y%m%d"))) %>%
-    rename(leaf_mass_per_area = LMA_gDW_m2,
-           RawSpecies = USDA_Species_Code) %>%
-    setDT()
+           leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2'),
+           year = 2016,
+           collectiondate = as.Date(strptime(Measurement_Date, "%Y%m%d")),
+           sitecode = paste(projectcode, Site, sep = '.')) %>%
+    select(SampleName, sitecode, year, datacode = USDA_Species_Code,
+           collectiondate, leaf_mass_per_area)
 
 barrow_2016_chn_file <- file.path(path_nga, "2016_Data", 
                                   "Barrow2016_CHN_analysis-edited.xlsx")
 barrow_2016_chn <- read_excel(barrow_2016_chn_file, sheet = 2) %>%
     rename(SampleName = Sample_Barcode,
-           RawSpecies = USDA_Species_Code,
-           leaf_C_percent = Perc_C,
-           leaf_N_percent = Perc_N,
-           leaf_CN_ratio = CN_ratio) %>%
-    mutate(SampleYear = 2016,
-           Site = 'Barrow') %>%
+           datacode = USDA_Species_Code,
+           leaf_C_pct_mass = Perc_C,
+           leaf_N_pct_mass = Perc_N,
+           leaf_CN_ratio_mass = CN_ratio) %>%
+    mutate(year = 2016,
+           sitecode = 'ngee_arctic.Barrow') %>%
+    select(SampleName, datacode, sitecode, starts_with('leaf')) %>%
     setDT()
 
 barrow_2016_lma_file <- file.path(path_nga, "2016_Data", 
                                   "Barrow2016_samples_LMA.csv")
 barrow_2016_lma <- fread(barrow_2016_lma_file) %>%
-    rename(leaf_mass_per_area = LMA_gDW_m2,
-           RawSpecies = Species) %>%
     mutate(SampleName = paste0("BNL", Sample_Barcode),
-           SampleYear = 2016, 
-           DOY = yday(strptime(Measurement_Date, "%Y%m%d")),
-           Site = 'Barrow') %>%
-    setDT()
+           year = 2016, 
+           collectiondate = as.Date(strptime(Measurement_Date, "%Y%m%d")),
+           sitecode = 'ngee_arctic.Barrow',
+           leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2')) %>%
+    select(SampleName, year, sitecode, collectiondate,
+           datacode = Species, leaf_mass_per_area)
 
 dat_2016 <- full_join(seward_2016_lma, barrow_2016_lma) %>%
-    full_join(barrow_2016_chn) %>%
-    subToCols()
+    full_join(barrow_2016_chn)
 dat_other <- full_join(traits_main, pigments) %>%
-    filter(!is.na(SampleYear))
+    filter(!is.na(year))
 traits_full <- full_join(dat_2016, dat_other) %>%
     setkey(SampleName) %>%
     .[traits2013[, SampleName], 
-      `:=`(leaf_chlorophyll_a = traits2013[, leaf_chlorophyll_a],
-           leaf_chlorophyll_b = traits2013[, leaf_chlorophyll_b],
-           leaf_chlorophyll_total = traits2013[, leaf_chlorophyll_total])]
+      `:=`(leaf_chla_per_area = traits2013[, leaf_chla_per_area],
+           leaf_chlb_per_area = traits2013[, leaf_chlb_per_area],
+           leaf_chltot_per_area = traits2013[, leaf_chltot_per_area])]
 
-nga_dat <- specdat %>%
-    left_join(traits_full, by = c('SampleName', 'SampleYear', 'Site')) %>%
-    mutate(Project = projectcode,
-           FullName = paste(Project, SampleName, SampleYear, 
-                            sep = id_separator)) %>%
-    subToCols
+samples_raw <- samples_spec %>%
+    full_join(select(traits_full, -starts_with('leaf_'))) %>%
+    mutate(projectcode = 'ngee_arctic',
+           samplecode = paste(projectcode, SampleName, year, sep = '|'),
+           plotcode = if_else(is.na(plotcode), 
+                              paste(sitecode, plotcode, sep = '.'),
+                              plotcode)) %>%
+    left_join(tbl(specdb, 'species_dict') %>% 
+              filter(projectcode == 'ngee_arctic') %>%
+              select(datacode, speciescode) %>%
+              collect() %>% setDT()) %>%
+    select(-datacode)
 
-# Sanity checks
-nga_dat %>% group_by(Site) %>% count()
-nga_dat %>% group_by(RawSpecies) %>% count()
-nga_dat %>% filter(is.na(RawSpecies)) %>% 
-    group_by(Site, SampleYear) %>% count()
-nga_dat[!is.na(leaf_chlorophyll_total), .N, SampleYear]
- 
-saveRDS(nga_dat, file = rds_name(projectcode))
+# Merge with SQL
+sites <- samples_raw %>%
+    distinct(sitecode) %>%
+    rename(code = sitecode)
+merge_with_sql(sites, 'sites', 'code')
+
+# TODO: Finer resolution for plot latitude and longitude...?
+plots <- samples_raw %>%
+    group_by(sitecode, plotcode) %>%
+    summarize(latitude = mean(latitude),
+              longitude = mean(longitude)) %>%
+    rename(code = plotcode)
+merge_with_sql(plots, 'plots', 'code')
+
+samples <- select(samples_raw, -SampleName, -latitude, -longitude) %>%
+    rename(code = samplecode)
+merge_with_sql(samples, 'samples', 'code')
+
+spectra_info <- spectra_data %>%
+    distinct(samplecode) %>%
+    mutate(type = 'reflectance')
+merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
+
+specid <- tbl(specdb, 'samples') %>%
+    filter(projectcode == 'ngee_arctic') %>%
+    select(samplecode = code) %>%
+    inner_join(tbl(specdb, 'spectra_info')) %>%
+    select(samplecode, spectraid = id) %>%
+    collect() %>% 
+    setDT()
+
+spectra_data_in <- spectra_data %>%
+    left_join(specid) %>%
+    select(-samplecode)
+merge_with_sql(spectra_data_in, 'spectra_data', 'spectraid')
+
+trait_data <- traits_full %>%
+    left_join(select(samples_raw, samplecode, SampleName)) %>%
+    select(samplecode, starts_with('leaf_')) %>%
+    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+
+trait_info <- trait_data %>%
+    distinct(trait) %>%
+    mutate(unit = case_when(grepl('_per_area', .$trait) ~ 'kg m-2',
+                            grepl('_pct_mass', .$trait) ~ '%',
+                            grepl('ratio', .$trait) ~ 'unitless',
+                            .$trait == 'leaf_area' ~ 'm2'))
+
+merge_with_sql(trait_info, 'trait_info', 'trait')
+merge_with_sql(trait_data, 'trait_data', 'samplecode')
+
+## Sanity checks
+#samples %>% group_by(sitecode) %>% count()
+#samples %>% group_by(speciescode) %>% count()
+#samples %>% filter(is.na(speciescode)) %>% 
+    #group_by(sitecode, year) %>% count()
