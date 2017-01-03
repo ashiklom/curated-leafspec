@@ -1,7 +1,8 @@
-source("common.R")
+library(specprocess)
+specdb <- src_postgres('leaf_spectra')
 
-projectcode <- "divittorio_conifer"
-projpath <- "raw/divittorio_conifer/"
+project_code <- "divittorio_conifer"
+projpath <- "data/divittorio_conifer/"
 
 # Get all spec file names
 # Commented-out directories are redundant ones
@@ -29,10 +30,10 @@ include_dirs <- c('sgf_oz',
                   'qcy_t3',
                   'qcy_t4')
 
-namesdict <- c("chla" = "leaf_chlorophyll_a",
-               "chlb" = "leaf_chlorophyll_b",
-               "tchl" = "leaf_chlorophyll_total",
-               "carot" = "leaf_carotenoid_total")
+namesdict <- c("chla" = "leaf_chla_per_area",
+               "chlb" = "leaf_chlb_per_area",
+               "tchl" = "leaf_chltot_per_area",
+               "carot" = "leaf_cartot_per_area")
 
 site_spec <- c("qcy" = "Plumas National Forest",
                "sgf" = "Giant Forest",
@@ -64,32 +65,37 @@ specfiles <- list.files(file.path(projpath, include_dirs),
 
 specregex <- '(^[[:alpha:]]+)_([[:alnum:]]+)_top_s([[:digit:]]+$)'
 
-specdat <- data.table(Project = projectcode,
+specdat <- data.table(projectcode = project_code,
                       specfile = specfiles,
-                      SampleYear = 2009) %>%
+                      year = 2009) %>%
     .[, rawstring := gsub('.txt', '', basename(specfile))] %>%
     .[, rawsite_spec := gsub(specregex, "\\1", rawstring)] %>%
     .[, rawcond_spec := gsub(specregex, "\\2", rawstring)] %>%
-    .[, specnum := as.numeric(gsub(specregex, "\\3", rawstring))] %>%
+    .[, specnum := as.integer(gsub(specregex, "\\3", rawstring))] %>%
     .[, Site := site_spec[rawsite_spec]] %>%
     .[, OtherCondition := cond[rawcond_spec]] %>%
-    .[, treenum := as.numeric(cond)] %>%
-    .[OtherCondition == 'ozone1', treenum := 1] %>%
-    .[OtherCondition == 'ozone2', treenum := 2] %>%
-    .[OtherCondition %in% c('ozone1', 'ozone2'), OtherCondition := 'ozone'] %>%
-    .[OtherCondition %in% c('1','2','3','4'), OtherCondition := 'random']
-
+    .[, treenum := as.integer(OtherCondition)] %>%
+    .[OtherCondition %in% c('1','2','3','4'), OtherCondition := 'random'] %>%
+    .[Site == 'Giant Forest' & OtherCondition == 'ozone' & specnum <= 25,
+      treenum := 1] %>%
+    .[Site == 'Giant Forest' & OtherCondition == 'ozone' & specnum > 25,
+      treenum := 2] %>%
+    .[Site == 'Giant Forest' & OtherCondition == 'ozone',
+      specnum := 1:.N, by = treenum]
 
 chempath <- file.path(projpath, "all_pig.txt")
 
 chemraw <- read.table(chempath, header = TRUE,
                       stringsAsFactors = FALSE)
 
-head_inds <- as.numeric(chemraw[,1]) %>% is.na() %>% which
+head_inds <- as.numeric(chemraw[,1]) %>% 
+    is.na %>% 
+    which %>% 
+    c(nrow(chemraw) + 1)
 
 chemlist <- list()
 
-for (i in seq_along(head_inds[-1])) {
+for (i in seq_along(c(head_inds[-1]))) {
     h <- head_inds[i]
     a <- head_inds[i] + 1
     b <- head_inds[i+1] - 1
@@ -108,86 +114,111 @@ chemdat <- rbindlist(chemlist) %>%
     .[, rawcond := gsub("(.*)-(.*)", "\\2", info)] %>%
     .[, Site := site_chem[rawsite]] %>%
     .[, OtherCondition := cond[rawcond]] %>%
-    .[, specnum := 1:.N, by = info] %>%
-    .[Site == "Mineral King" & OtherCondition == "random",
-      treenum := rep(1:4, each = 32)] %>%
-    .[rawcond == 'oz1', OtherCondition := '
+    .[rawcond == 'oz1', treenum := 1] %>%
+    .[rawcond == 'oz2', treenum := 2] %>%
+    .[OtherCondition == "random", treenum := rep(1:4, each = 32)] %>%
+    .[, specnum := 1:.N, by = .(info, treenum)] %>%
+    .[grep('oz(1|2)', rawcond), OtherCondition := 'ozone']
 
-# Break up merge by site -- this seems to work better
-gf_chem <- chemdat[Site == 'Giant Forest']
-gf_spec <- specdat[Site == 'Giant Forest']
-giant_forest <- data.table(Site = 'Giant Forest',
-                           OtherCondition = gf_chem[, OtherCondition],
-                           specnum = gf_chem[, specnum],
-                           treenum = gf_chem[, treenum],
-                           leaf_chlorophyll_a = gf_chem[, leaf_chlorophyll_a],
-                           leaf_chlorophyll_b = gf_chem[, leaf_chlorophyll_b], 
-                           leaf_chlorophyll_total = gf_chem[, leaf_chlorophyll_total],
-                           leaf_carotenoid_total = gf_chem[, leaf_carotenoid_total], 
-                           specfile = gf_spec[, specfile])
+alldat <- full_join(specdat, chemdat) %>%
+    mutate_at(vars(starts_with('leaf_')), ud.convert, 
+              u1 = 'ug cm-2', u2 = 'kg m-2') %>%
+    mutate(samplecode = paste(projectcode, 
+                              paste(rawsite, rawcond, treenum, specnum,
+                                    sep = '-'), 
+                              year, sep = '|'),
+           speciescode = case_when(Site %in% c('Plumas National Forest',
+                                               'Mineral King') ~ 'PIPO',
+                                   Site == 'Giant Forest' ~ 'PIJE'),
+           sitecode = paste(projectcode, rawsite, sep = '.'),
+           plotcode = sitecode) %>%
+    select(samplecode, speciescode, sitecode, plotcode, projectcode, year,
+           site.description = Site, dv_needle_condition = OtherCondition,
+           specfile, starts_with('leaf_'))
+glimpse(alldat)
 
-mk_chem <- chemdat[Site == 'Mineral King']
-mk_spec <- specdat[Site == 'Mineral King']
-mineral_king <- data.table(Site = 'Mineral King',
-                           OtherCondition = mk_chem[, OtherCondition],
-                           specnum = mk_chem[, specnum],
-                           treenum = mk_chem[, treenum],
-                           leaf_chlorophyll_a = mk_chem[, leaf_chlorophyll_a],
-                           leaf_chlorophyll_b = mk_chem[, leaf_chlorophyll_b], 
-                           leaf_chlorophyll_total = mk_chem[, leaf_chlorophyll_total],
-                           leaf_carotenoid_total = mk_chem[, leaf_carotenoid_total], 
-                           specfile = mk_spec[, specfile])
+sites <- alldat %>%
+    distinct(sitecode, site.description) %>%
+    rename(code = sitecode, description = site.description) %T>%
+    merge_with_sql('sites', 'code')
 
-plumas_chem <- chemdat[Site == 'Plumas National Forest']
-plumas_spec <- specdat[Site == 'Plumas National Forest']
-plumas <- data.table( OtherCondition = plumas_chem_sub[, OtherCondition],
-                     specnum = plumas_chem[, specnum],
-                     treenum = plumas_chem[, treenum],
-                     leaf_chlorophyll_a = plumas_chem[, leaf_chlorophyll_a],
-                     leaf_chlorophyll_b = plumas_chem[, leaf_chlorophyll_b], 
-                     leaf_chlorophyll_total = plumas_chem[, leaf_chlorophyll_total],
-                     leaf_carotenoid_total = plumas_chem[, leaf_carotenoid_total], 
-                     specfile = plumas_spec[OtherCondition != 'random', specfile])
-plumas <- rbindlist(list(plumas, plumas_spec[OtherCondition == 'random', 
-                         .(specfile, specnum, OtherCondition, treenum)]),
-                    use.names = TRUE, fill = TRUE) %>%
-    .[, Site := 'Plumas National Forest']
+plots <- 'description, latitude, longitude
+Giant Forest, 36.58, -118.77
+Plumas National Forest, 39.78, -120.98
+Mineral King, 36.45, -118.59' %>% 
+    fread %>%
+    left_join(sites) %>%
+    mutate(sitecode = code) %T>%
+    merge_with_sql('plots', 'code')
 
-plumas[, .N, is.na(specfile)]
+samples <- alldat %>%
+    select(code = samplecode, speciescode, sitecode, plotcode,
+           projectcode, year) %T>%
+    merge_with_sql('samples', 'code')
 
-divdat <- rbindlist(list(giant_forest, mineral_king, plumas), use.names = TRUE)
-divdat[, .N, is.na(specfile)]
-divdat[, .N, specfile][N > 1]
+sample_condition <- alldat %>%
+    select(samplecode, dv_needle_condition) %>%
+    melt(id.vars = 'samplecode', variable.name = 'condition', na.rm = TRUE)
+
+sample_condition_info <- sample_condition %>%
+    distinct(condition) %>%
+    mutate(description = paste('Needle damage condition.',
+                               '"green" indicates healthy needles.', 
+                               'See "Di Vittorio 2009 J. Environ. Qual."',
+                               'for more info.')) %T>%
+    merge_with_sql('sample_condition_info', 'condition')
+
+merge_with_sql(sample_condition, 'sample_condition', 'samplecode')
+
+trait_data <- alldat %>%
+    select(samplecode, starts_with('leaf_')) %>%
+    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+
+trait_info <- trait_data %>%
+    distinct(trait) %>%
+    mutate(unit = 'kg m-2') %T>%
+    merge_with_sql('trait_info', 'trait')
+
+merge_with_sql(trait_data, 'trait_data', 'samplecode')
 
 # Load spectra as a list
-refl_list <- trans_list <- list()
-for (i in seq_len(nrow(divdat))) {
-    specfile <- divdat[i, specfile]
+spec_list <- list()
+for (i in seq_len(nrow(alldat))) {
+    code <- alldat[i, samplecode]
+    specfile <- alldat[i, specfile]
     spec <- fread(specfile)
     setnames(spec, c('Wavelength', 'Reflectance', 'Transmittance'))
     # Downsample to PROSPECT resolution
     minx <- ceiling(min(spec[, Wavelength]))
     maxx <- floor(max(spec[, Wavelength]))
     newx <- minx:maxx
-    refl_list[[i]] <- spec[, .(Wavelength, Reflectance)] %>%
+    new_refl <- select(spec, Wavelength, Reflectance) %>%
         spline(x = .[,Wavelength], y = .[,Reflectance], xout = newx) %>%
-        do.call(cbind, .) %>%
-        'colnames<-'(c('Wavelength', 'Reflectance')) %>%
-        specobs
-    trans_list[[i]] <- spec[, .(Wavelength, Transmittance)] %>%
+        as.data.table %>%
+        rename(wavelength = x, value = y) %>%
+        mutate(samplecode = code, type = 'reflectance')
+    new_trans <- select(spec, Wavelength, Transmittance) %>%
         spline(x = .[,Wavelength], y = .[,Transmittance], xout = newx) %>%
-        do.call(cbind, .) %>%
-        'colnames<-'(c('Wavelength', 'Transmittance')) %>%
-        specobs
+        as.data.table %>%
+        rename(wavelength = x, value = y) %>%
+        mutate(samplecode = code, type = 'transmittance')
+    spec_list[[i]] <- rbind(new_refl, new_trans)
 }
 
+spectra_raw <- rbindlist(spec_list)
 
-divdat <- divdat %>%
-    .[, Reflectance := refl_list] %>%
-    .[, Transmittance := trans_list] %>%
-    .[, SampleName := paste(substr(Site, 0, 1), OtherCondition, specnum, treenum,
-                            sep = '_')]
-divdat[, .N, .(Site, SampleName)][N > 1]
+spectra_info <- spectra_raw %>%
+    distinct(samplecode, type) %T>%
+    merge_with_sql('spectra_info', 'samplecode')
 
-# Set unique sample name everywhere
-divdat <- divdat[
+spectra_data <- spectra_raw %>%
+    left_join(tbl(specdb, 'samples') %>% 
+              filter(projectcode == project_code) %>%
+              select(samplecode = code) %>% 
+              left_join(tbl(specdb, 'spectra_info') %>% 
+                        select(samplecode, type, spectraid = id)) %>%
+              collect %>% 
+              setDT) %>%
+    select(spectraid, wavelength, value) %T>%
+    merge_with_sql('spectra_data', 'spectraid')
+    
