@@ -8,7 +8,8 @@ Depends:
     dplyr,
     RPostgreSQL,
     udunits2,
-    methods
+    methods,
+    magrittr
 License: The MIT License
 Encoding: UTF-8
 LazyData: true
