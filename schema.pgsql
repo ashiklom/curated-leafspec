@@ -37,7 +37,7 @@ CREATE TABLE sites(
 
 CREATE TABLE plots(
     ID bigserial PRIMARY KEY,
-    SiteCode text REFERENCES sites (Code),
+    SiteCode text REFERENCES sites (Code) ON DELETE CASCADE,
     Code text UNIQUE,
     Description text,
     Latitude numeric,
@@ -65,8 +65,8 @@ CREATE TABLE species(
 CREATE TABLE species_dict(
     ID bigserial PRIMARY KEY,
     DataCode text,
-    ProjectCode text REFERENCES projects (Code),
-    SpeciesCode text REFERENCES species (Code),
+    ProjectCode text REFERENCES projects (Code) ON DELETE CASCADE,
+    SpeciesCode text REFERENCES species (Code) ON DELETE CASCADE,
     Comment text,
     CONSTRAINT unique_datacode_project 
         UNIQUE (DataCode, ProjectCode)
@@ -75,11 +75,11 @@ CREATE TABLE species_dict(
 CREATE TABLE samples(
     ID bigserial PRIMARY KEY,
     Code text UNIQUE,
-    ProjectCode text REFERENCES projects (Code),
+    ProjectCode text REFERENCES projects (Code) ON DELETE CASCADE,
     Year integer,
     CollectionDate date,
-    PlotCode text REFERENCES plots (Code),
-    SpeciesCode text REFERENCES species (Code),
+    PlotCode text REFERENCES plots (Code) ON DELETE CASCADE,
+    SpeciesCode text REFERENCES species (Code) ON DELETE CASCADE,
     CanopyPosition text,
     NeedleOldNew text,
     NeedleAge text,
@@ -96,8 +96,8 @@ CREATE TABLE sample_condition_info(
 
 CREATE TABLE sample_condition(
     ID bigserial PRIMARY KEY,
-    SampleCode text REFERENCES samples (Code),
-    Condition text REFERENCES sample_condition_info (Condition),
+    SampleCode text REFERENCES samples (Code) ON DELETE CASCADE,
+    Condition text REFERENCES sample_condition_info (Condition) ON DELETE CASCADE,
     Value text,
     Comment text
 );
@@ -121,7 +121,7 @@ CREATE TABLE instruments(
 
 CREATE TABLE specmethods(
     ID bigserial PRIMARY KEY,
-    InstrumentID bigint REFERENCES instruments (ID),
+    InstrumentID bigint REFERENCES instruments (ID) ON DELETE CASCADE,
     Apparatus text,
     Calibration text,
     Comment text
@@ -129,13 +129,13 @@ CREATE TABLE specmethods(
 
 CREATE TABLE spectra_info(
     ID bigserial PRIMARY KEY,
-    SampleCode text NOT NULL REFERENCES samples (Code),
+    SampleCode text NOT NULL REFERENCES samples (Code) ON DELETE CASCADE,
     Type text 
         CONSTRAINT legal_spectra_type 
         CHECK (Type = 'reflectance' OR 
                 Type = 'transmittance' OR 
                 Type = 'pseudo-absorbance'),
-    SpecMethodID bigint REFERENCES specmethods (ID),
+    SpecMethodID bigint REFERENCES specmethods (ID) ON DELETE CASCADE,
     SamplePrep text,
     Comment text
 );
@@ -143,15 +143,15 @@ CREATE TABLE spectra_info(
 /* Data tables */
 CREATE TABLE trait_data(
     ID bigserial PRIMARY KEY,
-    SampleCode text NOT NULL REFERENCES samples (Code),
-    Trait text REFERENCES trait_info (Trait),
+    SampleCode text NOT NULL REFERENCES samples (Code) ON DELETE CASCADE, 
+    Trait text REFERENCES trait_info (Trait) ON DELETE CASCADE,
     Value numeric,
     Comment text
 );
 
 CREATE TABLE spectra_data(
     ID bigserial PRIMARY KEY,
-    SpectraID bigint NOT NULL REFERENCES spectra_info,
+    SpectraID bigint NOT NULL REFERENCES spectra_info ON DELETE CASCADE,
     Wavelength numeric CONSTRAINT legal_wavelength CHECK (Wavelength > 0),
     Value numeric
 );
