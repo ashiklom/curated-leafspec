@@ -25,3 +25,9 @@ reset:
 
 %: process.%.R
 	Rscript $<
+
+drop-remote:
+	ssh new-testpecan "psql leaf_spectra -c 'DROP ALL TABLES ON SCHEMA public'"
+
+sync:
+	pg_dump -C leaf_spectra | bzip2 | ssh new-testpecan "bunzip2 | psql leaf_spectra"
