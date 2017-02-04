@@ -9,4 +9,3 @@ subToCols(dat)
 \description{
 Select only correct columns in the right order
 }
-

@@ -16,17 +16,18 @@ projectcode <- 'angers'
     #email = 'feretjb@cesbio.cnes.fr')
 #merge_with_sql(projects, 'projects')
 
-sites <- data.table(
-    code = 'angers.INRA',
-    description = 'INRA Centra in Angers, France')
-merge_with_sql(sites, 'sites')
 
-plots <- data.table(
-    code = sites$code,
-    description = sites$description,
+site_plot <- tibble(
+    sitecode = 'angers.INRA',
+    sitedescription = 'INRA Centra in Angers, France',
     latitude = 47.47,
-    longitude = -0.56)
-merge_with_sql(plots, 'plots')
+    longitude = -0.56) %>%
+    mutate(plotcode = sitecode,
+           plotdescription = sitedescription) %>%
+    db_merge_into(db = specdb, table = 'sites', values = ., 
+                  by = 'sitecode', id_colname = 'siteid') %>%
+    db_merge_into(db = specdb, table = 'plots', values = ., 
+                  by = 'plotcode', id_colname = 'plotid')
 
 #' Set paths
 PATH.ANGERS <- file.path("data", "ANGERS")
@@ -37,7 +38,7 @@ PATH.chem <- file.path(PATH.ANGERS, "LDB_angers2003.csv")
 species.rxp <- "(^[[:alpha:]]{3})[[:alpha:]]* ([[:alpha:]]{3})[[:alpha:]]* *.*"
 file.rxp <- "an03r(.{4})[.]txt"
 angers.chem <- fread(PATH.chem, header=TRUE) %>%
-    setnames('Latin Name', 'datacode') %>%
+    setnames('Latin Name', 'speciesdatacode') %>%
     .[, lapply(.SD, replace.na)] %>%
     .[, c('leaf_chla_area', 'leaf_chlb_area', 'leaf_chltot_area',
           'leaf_cartot_area', 'leaf_anthocyanin_area') :=
@@ -47,10 +48,10 @@ angers.chem <- fread(PATH.chem, header=TRUE) %>%
     .[, leaf_mass_per_area := ud.convert(LMA, 'g cm-2', 'kg m-2')] %>%
     .[, projectcode := projectcode] %>%
     .[, year := 2003] %>%
-    .[, sitecode := sites$code] %>%
-    .[, plotcode := plots$code] %>%
+    .[, sitecode := site_plot$sitecode] %>%
+    .[, plotcode := site_plot$plotcode] %>%
     .[, SampleName := sprintf("%s_%s",
-                               gsub(species.rxp, "\\1-\\2", datacode),
+                               gsub(species.rxp, "\\1-\\2", speciesdatacode),
                                gsub(file.rxp, "\\1", Refl_file))] %>%
     .[, samplecode := paste(projectcode, SampleName, year, sep = '|')]
 
@@ -65,52 +66,57 @@ for (ID in angers.chem[, unique(samplecode)]) {
     refl_files <- angers.chem[ID, Refl_file]
     refl_files_full <- file.path(PATH.spec, refl_files)
     refl_list[[ID]] <- fread(refl_files_full) %>%
-        setnames(c('wavelength', 'value')) %>%
+        setnames(c('wavelength', 'spectravalue')) %>%
         mutate(samplecode = ID,
                fname = refl_files,
-               type = 'reflectance')
+               spectratype = 'reflectance')
     trans_files <- angers.chem[ID, Trans_file] 
     trans_files_full <- file.path(PATH.spec, trans_files)
     trans_list[[ID]] <- fread(trans_files_full) %>%
-        setnames(c('wavelength', 'value')) %>%
+        setnames(c('wavelength', 'spectravalue')) %>%
         mutate(samplecode = ID,
                fname = refl_files,
-               type = 'transmittance')
+               spectratype = 'transmittance')
 }
 specdat <- rbind(rbindlist(refl_list), rbindlist(trans_list))
 
 spec_samples <- specdat %>% distinct(samplecode)
 
 chem_samples <- angers.chem %>%
-    distinct(samplecode, projectcode, year, sitecode, plotcode, datacode) %>%
+    distinct(samplecode, projectcode, year, sitecode, plotcode, speciesdatacode) %>%
     left_join(tbl(specdb, 'species_dict') %>% 
-              select(-id, -comment) %>% 
+              select(-speciesdictid, -speciesdictcomment) %>% 
               collect %>% 
               setDT) %>%
-    select(-datacode)
+    select(-speciesdatacode)
 
-samples <- full_join(spec_samples, chem_samples) %>% rename(code = samplecode)
-merge_with_sql(samples, 'samples')
+samples <- full_join(spec_samples, chem_samples) %>%
+    db_merge_into(db = specdb, table = 'samples', values = ., 
+                  by = 'samplecode', id_colname = 'sampleid')
 
-spectra_info <- specdat %>% distinct(samplecode, type)
-merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
+spectra_info <- specdat %>% 
+    distinct(samplecode, spectratype) %>%
+    db_merge_into(db = specdb, table = 'spectra_info', values = ., 
+                  by = 'samplecode', id_colname = 'spectraid')
 
 spectra_data <- specdat %>%
-    left_join(tbl(specdb, 'spectra_info') %>%
-              select(samplecode, spectraid = id) %>%
-              collect %>% 
-              setDT)
-merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
+    left_join(spectra_info) %>%
+    db_merge_into(db = specdb, table = 'spectra_data', values = ., 
+                  by = 'spectraid', id_colname = 'spectradataid',
+                  backend = 'psql_copy', return = FALSE)
 
 traits <- angers.chem %>%
     select(samplecode, starts_with('leaf_')) %>% 
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait', 
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- traits %>%
     distinct(trait) %>%
     .[grepl('_pct', trait), unit := '%'] %>%
     .[grepl('_area|_thickness', trait), unit := 'kg m-2'] %>%
-    .[grepl('ratio', trait), unit := 'unitless']
+    .[grepl('ratio', trait), unit := 'unitless'] %>%
+    db_merge_into(db = specdb, table = 'trait_info', values = ., 
+                  by = 'trait', id_colname = 'traitid')
 
-merge_with_sql(trait_info, 'trait_info', 'trait')
-merge_with_sql(traits, 'trait_data', 'samplecode')
+trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = traits, 
+                  by = 'samplecode', id_colname = 'traitdataid')

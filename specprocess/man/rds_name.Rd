@@ -9,4 +9,3 @@ rds_name(projectcode, directory = "processed-spec-data")
 \description{
 Create RDS name from project code
 }
-

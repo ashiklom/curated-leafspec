@@ -56,7 +56,6 @@ cond <- c("oz" = "ozone",
           "t3" = "3",
           "t4" = "4")
 
-
 # NOTE: Only using the top spectra 
 specfiles <- list.files(file.path(projpath, include_dirs), 
                         pattern = "_top_.*.txt", 
@@ -133,53 +132,64 @@ alldat <- full_join(specdat, chemdat) %>%
            sitecode = paste(projectcode, rawsite, sep = '.'),
            plotcode = sitecode) %>%
     select(samplecode, speciescode, sitecode, plotcode, projectcode, year,
-           site.description = Site, dv_needle_condition = OtherCondition,
+           sitedescription = Site, dv_needle_condition = OtherCondition,
            specfile, starts_with('leaf_'))
 glimpse(alldat)
 
 sites <- alldat %>%
-    distinct(sitecode, site.description) %>%
-    rename(code = sitecode, description = site.description) %T>%
-    merge_with_sql('sites', 'code')
+    distinct(sitecode, sitedescription) %>%
+    db_merge_into(db = specdb, table = 'sites', values = .,
+                  by = c('sitecode', 'sitedescription'), id_colname = 'siteid')
 
-plots <- 'description, latitude, longitude
-Giant Forest, 36.58, -118.77
-Plumas National Forest, 39.78, -120.98
-Mineral King, 36.45, -118.59' %>% 
-    fread %>%
+plots <- tribble(
+    ~sitedescription, ~latitude, ~longitude,
+    'Giant Forest', 36.58, -118.77,
+    'Plumas National Forest', 39.78, -120.98,
+    'Mineral King', 36.45, -118.59) %>% 
     left_join(sites) %>%
-    mutate(sitecode = code) %T>%
-    merge_with_sql('plots', 'code')
+    mutate(plotcode = sitecode,
+           plotdescription = sitedescription) %>%
+    db_merge_into(db = specdb, table = 'plots', values = ., 
+                  by = c('plotcode', 'plotdescription'), id_colname = 'plotid')
 
 samples <- alldat %>%
-    select(code = samplecode, speciescode, sitecode, plotcode,
-           projectcode, year) %T>%
-    merge_with_sql('samples', 'code')
-
+    select(samplecode, speciescode, sitecode, plotcode,
+           projectcode, year) %>%
+    db_merge_into(db = specdb, table = 'samples', values = .,
+                  by = 'samplecode', id_colname = 'sampleid')
+    
 sample_condition <- alldat %>%
     select(samplecode, dv_needle_condition) %>%
-    melt(id.vars = 'samplecode', variable.name = 'condition', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'condition',
+         value.name = 'conditionvalue', na.rm = TRUE)
 
 sample_condition_info <- sample_condition %>%
     distinct(condition) %>%
-    mutate(description = paste('Needle damage condition.',
-                               '"green" indicates healthy needles.', 
-                               'See "Di Vittorio 2009 J. Environ. Qual."',
-                               'for more info.')) %T>%
-    merge_with_sql('sample_condition_info', 'condition')
+    mutate(conditiondescription = paste('Needle damage condition.',
+                                        '"green" indicates healthy needles.', 
+                                        'See "Di Vittorio 2009 J. Environ. Qual."',
+                                        'for more info.')) %>%
+    db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
+                  by = 'condition', id_colname = 'conditionid')
 
-merge_with_sql(sample_condition, 'sample_condition', 'samplecode')
+sample_condition <- db_merge_into(db = specdb, table = 'sample_condition', 
+                                  values = sample_condition,
+                                  by = 'samplecode', id_colname = 'conditiondataid')
 
 trait_data <- alldat %>%
     select(samplecode, starts_with('leaf_')) %>%
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait',
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- trait_data %>%
     distinct(trait) %>%
-    mutate(unit = 'kg m-2') %T>%
-    merge_with_sql('trait_info', 'trait')
+    mutate(unit = 'kg m-2') %>%
+    db_merge_into(db = specdb, table = 'trait_info', values = .,
+                  by = 'trait', id_colname = 'traitid')
 
-merge_with_sql(trait_data, 'trait_data', 'samplecode')
+trait_data <- db_merge_into(db = specdb, table = 'trait_data', 
+                            values = trait_data, by = 'samplecode', 
+                            id_colname = 'traitdataid')
 
 # Load spectra as a list
 spec_list <- list()
@@ -195,30 +205,27 @@ for (i in seq_len(nrow(alldat))) {
     new_refl <- select(spec, Wavelength, Reflectance) %>%
         spline(x = .[,Wavelength], y = .[,Reflectance], xout = newx) %>%
         as.data.table %>%
-        rename(wavelength = x, value = y) %>%
-        mutate(samplecode = code, type = 'reflectance')
+        rename(wavelength = x, spectravalue = y) %>%
+        mutate(samplecode = code, spectratype = 'reflectance')
     new_trans <- select(spec, Wavelength, Transmittance) %>%
         spline(x = .[,Wavelength], y = .[,Transmittance], xout = newx) %>%
         as.data.table %>%
-        rename(wavelength = x, value = y) %>%
-        mutate(samplecode = code, type = 'transmittance')
+        rename(wavelength = x, spectravalue = y) %>%
+        mutate(samplecode = code, spectratype = 'transmittance')
     spec_list[[i]] <- rbind(new_refl, new_trans)
 }
 
 spectra_raw <- rbindlist(spec_list)
 
 spectra_info <- spectra_raw %>%
-    distinct(samplecode, type) %T>%
-    merge_with_sql('spectra_info', 'samplecode')
+    distinct(samplecode, spectratype) %>%
+    db_merge_into(db = specdb, table = 'spectra_info', values = .,
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- spectra_raw %>%
-    left_join(tbl(specdb, 'samples') %>% 
-              filter(projectcode == project_code) %>%
-              select(samplecode = code) %>% 
-              left_join(tbl(specdb, 'spectra_info') %>% 
-                        select(samplecode, type, spectraid = id)) %>%
-              collect %>% 
-              setDT) %>%
-    select(spectraid, wavelength, value) %T>%
-    merge_with_sql('spectra_data', 'spectraid')
+    left_join(spectra_info %>% select(samplecode, spectratype, spectraid)) %>%
+    select(spectraid, wavelength, spectravalue) %>%
+    db_merge_into(db = specdb, table = 'spectra_data', values = .,
+                  by = c('spectraid'), id_colname = 'spectradataid',
+                  return = FALSE, backend = 'psql_copy')
     

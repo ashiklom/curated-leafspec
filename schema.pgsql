@@ -19,36 +19,36 @@ DROP TABLE IF EXISTS sample_condition_info CASCADE;
 
 /* Metadata tables */
 CREATE TABLE projects(
-    ID bigserial PRIMARY KEY,
-    Code text UNIQUE,
-    Description text,
+    ProjectID bigserial PRIMARY KEY,
+    ProjectCode text UNIQUE,
+    ProjectDescription text,
     PointOfContact text,
     Email text,
     DOI text,
-    Comment text
+    ProjectComment text
 );
 
 CREATE TABLE sites(
-    ID bigserial PRIMARY KEY,
-    Code text UNIQUE, 
-    Description text,
-    Comment text
+    SiteID bigserial PRIMARY KEY,
+    SiteCode text UNIQUE, 
+    SiteDescription text,
+    SiteComment text
 );
 
 CREATE TABLE plots(
-    ID bigserial PRIMARY KEY,
-    SiteCode text REFERENCES sites (Code) ON DELETE CASCADE,
-    Code text UNIQUE,
-    Description text,
+    PlotID bigserial PRIMARY KEY,
+    SiteCode text REFERENCES sites (SiteCode) ON DELETE CASCADE,
+    PlotCode text UNIQUE,
+    PlotDescription text,
     Latitude numeric,
     Longitude numeric,
-    Comment text
+    PlotComment text
 );
 
 CREATE TABLE species(
-    ID bigserial PRIMARY KEY,
-    Code text UNIQUE,
-    CodeType text,
+    SpeciesID bigserial PRIMARY KEY,
+    SpeciesCode text UNIQUE,
+    SpeciesCodeType text,
     ScientificName text,
     Genus text,
     Species text,
@@ -58,100 +58,100 @@ CREATE TABLE species(
     Forma text,
     Family text,
     Authority text,
-    TryID bigint,
-    Comment text
+    TrySpeciesID bigint,
+    SpeciesComment text
 );
 
 CREATE TABLE species_dict(
-    ID bigserial PRIMARY KEY,
-    DataCode text,
-    ProjectCode text REFERENCES projects (Code) ON DELETE CASCADE,
-    SpeciesCode text REFERENCES species (Code) ON DELETE CASCADE,
-    Comment text,
+    SpeciesDictID bigserial PRIMARY KEY,
+    SpeciesDataCode text,
+    ProjectCode text REFERENCES projects (ProjectCode) ON DELETE CASCADE,
+    SpeciesCode text REFERENCES species (SpeciesCode) ON DELETE CASCADE,
+    SpeciesDictComment text,
     CONSTRAINT unique_datacode_project 
-        UNIQUE (DataCode, ProjectCode)
+        UNIQUE (SpeciesDataCode, ProjectCode)
 );
 
 CREATE TABLE samples(
-    ID bigserial PRIMARY KEY,
-    Code text UNIQUE,
-    ProjectCode text REFERENCES projects (Code) ON DELETE CASCADE,
+    SampleID bigserial PRIMARY KEY,
+    SampleCode text UNIQUE,
+    ProjectCode text REFERENCES projects (ProjectCode) ON DELETE CASCADE,
     Year integer,
     CollectionDate date,
-    PlotCode text REFERENCES plots (Code) ON DELETE CASCADE,
-    SpeciesCode text REFERENCES species (Code) ON DELETE CASCADE,
+    PlotCode text REFERENCES plots (PlotCode) ON DELETE CASCADE,
+    SpeciesCode text REFERENCES species (SpeciesCode) ON DELETE CASCADE,
     CanopyPosition text,
     NeedleOldNew text,
     NeedleAge text,
     OtherCondition text,
-    Comment text
+    SampleComment text
 );
 
 CREATE TABLE sample_condition_info(
-    ID bigserial PRIMARY KEY,
+    ConditionID bigserial PRIMARY KEY,
     Condition text UNIQUE,
-    Description text,
-    Comment text
+    ConditionDescription text,
+    ConditionComment text
 );
 
 CREATE TABLE sample_condition(
-    ID bigserial PRIMARY KEY,
-    SampleCode text REFERENCES samples (Code) ON DELETE CASCADE,
+    ConditionDataID bigserial PRIMARY KEY,
+    SampleCode text REFERENCES samples (SampleCode) ON DELETE CASCADE,
     Condition text REFERENCES sample_condition_info (Condition) ON DELETE CASCADE,
-    Value text,
-    Comment text
-);
-
-CREATE TABLE trait_info(
-    ID bigserial PRIMARY KEY,
-    Trait text UNIQUE,
-    Description text,
-    Unit text,
-    Comment text
+    ConditionValue text,
+    ConditionValueComment text
 );
 
 CREATE TABLE instruments(
-    ID bigserial PRIMARY KEY,
-    Name text UNIQUE,
+    InstrumentID bigserial PRIMARY KEY,
+    InstrumentName text UNIQUE,
     MinWavelength real,
     MaxWavelength real,
     SpectralResolution real,
-    Comment text
+    InstrumentComment text
 );
 
 CREATE TABLE specmethods(
-    ID bigserial PRIMARY KEY,
-    InstrumentID bigint REFERENCES instruments (ID) ON DELETE CASCADE,
+    SpecMethodID bigserial PRIMARY KEY,
+    InstrumentID bigint REFERENCES instruments (InstrumentID) ON DELETE CASCADE,
     Apparatus text,
     Calibration text,
-    Comment text
+    SpecMethodComment text
 );
 
 CREATE TABLE spectra_info(
-    ID bigserial PRIMARY KEY,
-    SampleCode text NOT NULL REFERENCES samples (Code) ON DELETE CASCADE,
-    Type text 
+    SpectraID bigserial PRIMARY KEY,
+    SampleCode text NOT NULL REFERENCES samples (SampleCode) ON DELETE CASCADE,
+    SpectraType text 
         CONSTRAINT legal_spectra_type 
-        CHECK (Type = 'reflectance' OR 
-                Type = 'transmittance' OR 
-                Type = 'pseudo-absorbance'),
-    SpecMethodID bigint REFERENCES specmethods (ID) ON DELETE CASCADE,
+        CHECK (SpectraType = 'reflectance' OR 
+                SpectraType = 'transmittance' OR 
+                SpectraType = 'pseudo-absorbance'),
+    SpecMethodID bigint REFERENCES specmethods (SpecMethodID) ON DELETE CASCADE,
     SamplePrep text,
     Comment text
 );
 
-/* Data tables */
-CREATE TABLE trait_data(
-    ID bigserial PRIMARY KEY,
-    SampleCode text NOT NULL REFERENCES samples (Code) ON DELETE CASCADE, 
-    Trait text REFERENCES trait_info (Trait) ON DELETE CASCADE,
-    Value numeric,
-    Comment text
+CREATE TABLE spectra_data(
+    SpectraDataID bigserial PRIMARY KEY,
+    SpectraID bigint NOT NULL REFERENCES spectra_info (SpectraID) ON DELETE CASCADE,
+    Wavelength numeric CONSTRAINT legal_wavelength CHECK (Wavelength > 0),
+    SpectraValue numeric
 );
 
-CREATE TABLE spectra_data(
-    ID bigserial PRIMARY KEY,
-    SpectraID bigint NOT NULL REFERENCES spectra_info ON DELETE CASCADE,
-    Wavelength numeric CONSTRAINT legal_wavelength CHECK (Wavelength > 0),
-    Value numeric
+/* Data tables */
+CREATE TABLE trait_info(
+    TraitID bigserial PRIMARY KEY,
+    Trait text UNIQUE,
+    TraitDescription text,
+    Unit text,
+    TraitInfoComment text
+);
+
+CREATE TABLE trait_data(
+    TraitDataID bigserial PRIMARY KEY,
+    SampleCode text NOT NULL REFERENCES samples (SampleCode) ON DELETE CASCADE, 
+    Trait text REFERENCES trait_info (Trait) ON DELETE CASCADE,
+    TraitValue numeric,
+    TraitDataComment text
 );

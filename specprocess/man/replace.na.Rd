@@ -9,4 +9,3 @@ replace.na(column, na.val = -999)
 \description{
 Replace "-999" (and similar) with NA values
 }
-

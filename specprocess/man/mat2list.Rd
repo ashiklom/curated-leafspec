@@ -9,4 +9,3 @@ mat2list(mat)
 \description{
 Convert multi-column matrix to named list of columns
 }
-

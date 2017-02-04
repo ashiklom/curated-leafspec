@@ -9,4 +9,3 @@ wlmat2list(wlmat)
 \description{
 Convert multi-column matrix where wavelength is first column to named list
 }
-

@@ -11,4 +11,3 @@ check.unique(dat, columns = "sample_id")
 Small function to check for values in data.table based on column.
 Mainly used to make sure the sample_id is actually unique.
 }
-
