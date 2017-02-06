@@ -20,21 +20,21 @@ project_code <- "yang_pheno"
 # All trees are Red Oak
 
 ##' Sites table
-sites_string <- 
-'code, description
-yang_pheno.MV, "Martha\'s Vineyard, MA, USA"
-yang_pheno.HF, "Harvard Forest, Petersham, MA, USA"'
-sites <- fread(input = sites_string)
-merge_with_sql(sites, 'sites', 'code')
+sites <- tribble(
+    ~sitecode, ~description,
+    'yang_pheno.MV', "Martha\'s Vineyard, MA, USA",
+    'yang_pheno.HF', "Harvard Forest, Petersham, MA, USA") %>%
+    db_merge_into(db = specdb, table = 'sites', values = .,
+                  by = 'sitecode', id_colname = 'siteid')
 
-plots_string <- 
-'code, latitude, longitude
-yang_pheno.MV, 41.362, -70.578
-yang_pheno.HF, 42.531, -72.190'
-plots <- fread(input = plots_string) %>%
+plots <- tribble(
+    ~sitecode, ~latitude, ~longitude,
+    'yang_pheno.MV', 41.362, -70.578,
+    'yang_pheno.HF', 42.531, -72.190) %>%
     left_join(sites) %>%
-    mutate(sitecode = code)
-merge_with_sql(plots, 'plots', 'code')
+    mutate(plotcode = sitecode) %>%
+    db_merge_into(db = specdb, table = 'plots', values = .,
+                  by = 'plotcode', id_colname = 'plotid')
 
 # HF
 # RO -- Red Oak
@@ -79,7 +79,8 @@ readYang <- function(SampleYear, Site) {
 
     dat_trait <- dat_full %>% 
         melt(id.vars = c("trait", "DOY"),
-             variable.name = 'barcode') %>%
+             variable.name = 'barcode',
+             value.name = 'traitvalue') %>%
         dcast(DOY + barcode ~ trait) %>%
         mutate(projectcode = project_code,
                year = SampleYear,
@@ -100,11 +101,11 @@ readYang <- function(SampleYear, Site) {
                     #YB = list('Betula alleghaniensis', 'BEAL2', 'Yellow birch'))
 
     if (is_MV){
-        dat_trait <- mutate(dat_trait, datacode = 'Quercus rubra')
+        dat_trait <- mutate(dat_trait, speciesdatacode = 'Quercus rubra')
     } else if (is_HF) {
         dat_trait <- mutate(dat_trait, 
                             label = gsub('(RO|RM|YB).*', "\\1", barcode),
-                            datacode = species[label]) %>% select(-label)
+                            speciesdatacode = species[label]) %>% select(-label)
     }
 
     dat_trait <- dat_trait %>%
@@ -112,26 +113,27 @@ readYang <- function(SampleYear, Site) {
                                     grepl('L', barcode) ~ 'shade'))
 
     samples_all <- dat_trait %>%
-        distinct(samplecode, projectcode, sitecode, plotcode, datacode, DOY, year) %>%
+        distinct(samplecode, projectcode, sitecode, plotcode, speciesdatacode, DOY, year) %>%
         mutate(collectiondate = as.Date(paste(year, DOY, sep = '_'),
                                         '%Y_%j')) %>%
         left_join(tbl(specdb, 'species_dict') %>%
                   filter(projectcode == project_code) %>%
-                  select(datacode, speciescode) %>%
+                  select(speciesdatacode, speciescode) %>%
                   collect() %>%
                   setDT()) %>%
-        select(-datacode)
-
-    rename(samples_all, code = samplecode) %>%
-        merge_with_sql('samples', 'code')
+        select(-speciesdatacode) %>%
+        db_merge_into(db = specdb, table = 'samples', values = .,
+                    by = 'samplecode', id_colname = 'sampleid')
 
     sample_condition <- dat_trait %>%
         distinct(samplecode, sunshade) %>%
-        melt(id.vars = 'samplecode', variable.name = 'condition')
-    sample_condition_info <- distinct(sample_condition, condition)
-
-    merge_with_sql(sample_condition_info, 'sample_condition_info', 'condition')
-    merge_with_sql(sample_condition, 'sample_condition', 'samplecode')
+        melt(id.vars = 'samplecode', variable.name = 'condition',
+             value.name = 'conditionvalue')
+    sample_condition_info <- distinct(sample_condition, condition) %>%
+        db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
+                    by = 'condition', id_colname = 'conditionid')
+    sample_condition <- db_merge_into(db = specdb, table = 'sample_condition', values = sample_condition,
+                                      by = 'samplecode', id_colname = 'conditiondataid')
 
     trait_data <- dat_trait %>%
         select(samplecode, starts_with('leaf_')) %>%
@@ -139,16 +141,19 @@ readYang <- function(SampleYear, Site) {
                   u1 = 'ug cm-2', u2 = 'kg m-2') %>%
         mutate(leaf_mass_per_area = ud.convert(leaf_mass_per_area,
                                                'g m-2', 'kg m-2')) %>%
-        melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+        melt(id.vars = 'samplecode', variable.name = 'trait',
+             value.name = 'spectravalue', na.rm = TRUE)
 
     trait_info <- trait_data %>%
         distinct(trait) %>%
         mutate(unit = case_when(grepl('_pct_mass', .$trait) ~ '%',
                                 grepl('_per_area', .$trait) ~ 'kg m-2',
-                                TRUE ~ NA_character_))
+                                TRUE ~ NA_character_)) %>%
+        db_merge_into(db = specdb, table = 'trait_info', values = .,
+                    by = 'trait', id_colname = 'traitid')
 
-    merge_with_sql(trait_info, 'trait_info', 'trait')
-    merge_with_sql(trait_data, 'trait_data', 'samplecode')
+    trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = trait_data,
+                                by = c('samplecode', 'trait'), id_colname = 'traitdataid')
 
     # Load spectral data
     getSpec <- function(fname) {
@@ -157,7 +162,7 @@ readYang <- function(SampleYear, Site) {
                        samples_all[DOY == doys[i], samplecode])) %>%
             filter(wavelength != 0) %>%
             melt(id.vars = 'wavelength', variable.name = 'samplecode', 
-                 na.rm = TRUE)
+                 value.name = 'spectravalue', na.rm = TRUE)
         return(spec)
     }
 
@@ -185,31 +190,28 @@ readYang <- function(SampleYear, Site) {
     }
     
     refl_dat <- rbindlist(refl_list) %>%
-        mutate(type = 'reflectance')
+        mutate(spectratype = 'reflectance')
 
     if (is_HF) {
         trans_dat <- rbindlist(trans_list) %>%
-            mutate(type = 'transmittance')
+            mutate(spectratype = 'transmittance')
         spectra_raw <- rbind(refl_dat, trans_dat)
     } else {
         spectra_raw <- refl_dat
     }
 
     spectra_info <- spectra_raw %>%
-        distinct(samplecode, type)
-    merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
+        distinct(samplecode, spectratype) %>%
+        db_merge_into(db = specdb, table = 'spectra_info', values = .,
+                    by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
     spectra_data <- spectra_raw %>%
-        select(samplecode, wavelength, value) %>%
-        left_join(tbl(specdb, 'samples') %>%
-                  filter(projectcode == project_code) %>%
-                  select(samplecode = code) %>%
-                  left_join(tbl(specdb, 'spectra_info') %>%
-                            select(spectraid = id, samplecode)) %>%
-                  collect() %>%
-                  setDT()) %>%
-        select(spectraid, wavelength, value)
-    merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
+        select(samplecode, wavelength, spectravalue) %>%
+        left_join(spectra_info %>% select(samplecode, spectraid)) %>%
+        select(spectraid, wavelength, spectravalue)
+    mrg <- db_merge_into(db = specdb, table = 'spectra_data', values = spectra_data,
+                         by = 'spectraid', id_colname = 'spectradataid',
+                         return = FALSE, backend = 'psql_copy')
 }
 
 ##options(error = recover)

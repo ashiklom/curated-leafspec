@@ -15,7 +15,7 @@ for (f in traits_files){
 }
 traits_dat_raw <- rbindlist(traits_list, fill=TRUE)
 colnames_dict <- c('sampleid' = 'samplename',
-                   'species' = 'speciesdatacode',
+                   'species' = 'speciescode',
                    'cell' = 'leaf_cellulose_pct_mass',
                    'lignin' = 'leaf_lignin_pct_mass',
                    'carbon' = 'leaf_C_pct_mass',
@@ -81,13 +81,6 @@ accp_spec <- accp_spec[, samplename := gsub('BH', 'BHI', samplename)] %>%
     filter(!(samplename %in% c('92CWS61BA2A', '92CWS7FRN', '92HFS19RO4'))) %>%
     .[grepl('^(map|df)_', fname), samplename := paste0(samplename, '_', sampleprep)]
 
-# Match species
-species_dict <- tbl(specdb, 'species_dict') %>%
-    filter(projectcode == project.code) %>%
-    select(speciesdatacode, speciescode) %>%
-    collect() %>%
-    setDT()
-
 # Buld whole samples table
 all_samples <- accp_spec %>%
     distinct(samplename, sampleprep, spectratype, fname) %>%
@@ -95,11 +88,11 @@ all_samples <- accp_spec %>%
     .[, plot_id := as.character(plot_id)] %>%
     .[grepl('^map_', fname), 
       `:=`(site_id = 'SaplingACMA3',
-           speciesdatacode = 'ACMA3',
+           speciescode = 'ACMA3',
            plot_id = NA)] %>%
     .[grepl('^df_', fname), 
       `:=`(site_id = 'SaplingPSME', 
-           speciesdatacode = 'PSME',
+           speciescode = 'PSME',
            plot_id = NA)] %>%
 # Populate additional metadata
     .[, collectiondate := as.Date(as.character(colldate), format = '%y%m%d')] %>%
@@ -107,11 +100,15 @@ all_samples <- accp_spec %>%
     .[, projectcode := project.code] %>%
     .[, fullname := paste(project.code, samplename, year, sep = '|')] %>%
 # `species.code` is already the correct USDA code
-    .[, speciescodetype := 'USDA_plants'] %>% # Species codetype
     .[, sitecode := paste0(projectcode, '.', site_id)] %>%
     .[, plotcode := paste0(sitecode, '.', plot_id)] %>%
-    left_join(species_dict)
-all_samples[, .N, fullname][N > 1]
+    .[speciescode == 'USNEA', speciescode := 'USNEA2']
+
+#species <- tbl(specdb, 'species') %>%
+    #select(speciescode) %>%
+    #collect() %>%
+    #setDT()
+#sp <- anti_join(all_samples %>% select(speciescode), species)
 
 ## Create sites table
 accp_site_info <- tribble(

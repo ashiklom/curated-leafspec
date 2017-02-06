@@ -1,10 +1,9 @@
-DATA:= accp lopex angers divittorio_conifer nasa_fft ngee_arctic ngee_tropics 
-#yang_pheno 
+DATA:= accp lopex angers divittorio_conifer nasa_fft ngee_arctic ngee_tropics yang_pheno 
 #TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
 .PHONY: all clean reset
 
-all: install reset $(DATA)
+all: install reset $(DATA) report
 
 processed-spec-data/%.rds: process.%.R
 	Rscript $<
@@ -32,3 +31,7 @@ drop-remote:
 
 sync:
 	pg_dump -C leaf_spectra | bzip2 | ssh new-testpecan "bunzip2 | psql leaf_spectra"
+
+report:
+	Rscript -e 'rmarkdown::render("spectra_report.Rmd")'
+

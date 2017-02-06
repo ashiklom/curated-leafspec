@@ -1,0 +1,69 @@
+---
+title: Spectra database summary
+author: Alexey Shiklomanov
+output: html_document
+---
+
+```{r setup, echo=FALSE}
+suppressPackageStartupMessages({
+    library(specprocess)
+    library(knitr)
+    library(ggplot2)
+    library(ggmap)
+})
+specdb <- src_postgres('leaf_spectra')
+opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r tablesize, echo=FALSE}
+table_counts <- tibble(tablename = src_tbls(specdb),
+                       counts = NA_integer_)
+for (i in seq_len(nrow(table_counts))) {
+    table_counts[i, "counts"] <- tbl(specdb, table_counts[[i, 'tablename']]) %>%
+        count() %>% collect () %>% .[['n']]
+}
+knitr::kable(table_counts, caption = 'Number of entries in each table')
+```
+
+```{r samplemap, echo = FALSE, fig.cap='Geographic distribution of samples'}
+samples_by_site <- tbl(specdb, 'samples') %>%
+    left_join(tbl(specdb, 'plots')) %>%
+    left_join(tbl(specdb, 'sites')) %>%
+    group_by(sitecode, projectcode) %>%
+    summarize(mean_lat = mean(latitude), 
+              mean_lon = mean(longitude),
+              nsamp = n()) %>%
+    collect()
+x_lims <- round(range(samples_by_site$mean_lon, na.rm = TRUE))
+y_lims <- round(range(samples_by_site$mean_lat, na.rm = TRUE))
+
+ggplot(samples_by_site) +
+    aes(x = mean_lon, y = mean_lat, size = nsamp, color = projectcode) +
+    borders('world', xlim = x_lims, ylim = y_lims) +
+    geom_point()
+```
+
+```{r missingspecies, echo = FALSE}
+missing_species <- tbl(specdb, 'samples') %>%
+    filter(is.na(speciescode)) %>%
+    group_by(projectcode) %>%
+    summarize(nsamp = n()) %>%
+    arrange(desc(nsamp)) %>%
+    collect()
+knitr::kable(missing_species)
+```
+
+```{r species, echo = FALSE, fig.cap = 'Samples by species'}
+samples_by_species <- tbl(specdb, 'samples') %>%
+    group_by(speciescode) %>%
+    summarize(nsamp = n()) %>%
+    arrange(desc(nsamp)) %>%
+    left_join(tbl(specdb, 'species')) %>%
+    collect() %>%
+    mutate(speciescode = factor(speciescode, levels = speciescode))
+ggplot(samples_by_species) + 
+    aes(x = speciescode, y = nsamp) +
+    geom_bar(stat = 'identity')
+kable(samples_by_species %>% select(scientificname, nsamp) %>% head(20),
+      caption = 'Top 20 species')
+```
