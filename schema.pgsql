@@ -79,12 +79,8 @@ CREATE TABLE samples(
     Year integer,
     CollectionDate date,
     PlotCode text REFERENCES plots (PlotCode) ON DELETE CASCADE,
-    SpeciesCode text REFERENCES species (SpeciesCode) ON DELETE CASCADE,
-    CanopyPosition text,
-    NeedleOldNew text,
-    NeedleAge text,
-    OtherCondition text,
-    SampleComment text
+    SpeciesCode text REFERENCES species (SpeciesCode) ON DELETE CASCADE
+    /*SampleComment text*/
 );
 
 CREATE TABLE sample_condition_info(

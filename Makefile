@@ -1,7 +1,4 @@
-DATA:= accp lopex angers divittorio_conifer
-#nasa_fft 
-#ngee_arctic 
-#ngee_tropics 
+DATA:= accp lopex angers divittorio_conifer nasa_fft ngee_arctic ngee_tropics 
 #yang_pheno 
 #TARGETS := $(DATA:%=processed-spec-data/%.rds)
 

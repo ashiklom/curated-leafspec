@@ -68,7 +68,8 @@ samples_spec <- specdat_full %>%
 
 spectra_data <- specdat_full %>%
     select(samplecode, starts_with('Wave_')) %>%
-    melt(id.vars = 'samplecode', variable.name = 'wavelength') %>%
+    melt(id.vars = 'samplecode', variable.name = 'wavelength', 
+         value.name = 'spectravalue') %>%
     mutate(wavelength = as.numeric(gsub('Wave_', '', wavelength)))
 
 # Load main traits file
@@ -82,14 +83,14 @@ traits_main <- read_excel(traits_main_file, sheet = 2) %>%
            leaf_C_pct_mass = Perc_C,
            leaf_N_pct_mass = Perc_N,
            leaf_CN_ratio_mass = CN_ratio,
-           datacode = USDA_Species_Code) %>%
+           speciesdatacode = USDA_Species_Code) %>%
     mutate(collectiondate = as.Date(strptime(Measurement_Date, "%Y%m%d")),
            year = year(collectiondate),
            sitecode = 'ngee_arctic.Barrow',
            leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2'),
            leaf_N_per_area = ud.convert(N_area_gDW_m2, 'g m-2', 'kg m-2'),
            leaf_C_per_area = ud.convert(C_area_gDW_m2, 'g m-2', 'kg m-2')) %>%
-    select(SampleName, year, collectiondate, sitecode, datacode, 
+    select(SampleName, year, collectiondate, sitecode, speciesdatacode, 
            starts_with('leaf_')) %>%
     setDT()
 
@@ -117,7 +118,7 @@ traits2013 <- speclist[['2013']] %>%
            leaf_chltot_per_area = leaf_chla_per_area + leaf_chlb_per_area,
            leaf_N_per_area = ud.convert(Narea_gN_m2, 'g m-2', 'kg m-2'), 
            leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2')) %>%
-    select(SampleName, year, datacode = USDA_Species,
+    select(SampleName, year, speciesdatacode = USDA_Species,
            starts_with('leaf_', ignore.case = FALSE),
            leaf_area = Total_Leaf_Area_m2)
 
@@ -130,20 +131,20 @@ seward_2016_lma <- fread(seward_2016_lma_file) %>%
            year = 2016,
            collectiondate = as.Date(strptime(Measurement_Date, "%Y%m%d")),
            sitecode = paste(projectcode, Site, sep = '.')) %>%
-    select(SampleName, sitecode, year, datacode = USDA_Species_Code,
+    select(SampleName, sitecode, year, speciesdatacode = USDA_Species_Code,
            collectiondate, leaf_mass_per_area)
 
 barrow_2016_chn_file <- file.path(path_nga, "2016_Data", 
                                   "Barrow2016_CHN_analysis-edited.xlsx")
 barrow_2016_chn <- read_excel(barrow_2016_chn_file, sheet = 2) %>%
     rename(SampleName = Sample_Barcode,
-           datacode = USDA_Species_Code,
+           speciesdatacode = USDA_Species_Code,
            leaf_C_pct_mass = Perc_C,
            leaf_N_pct_mass = Perc_N,
            leaf_CN_ratio_mass = CN_ratio) %>%
     mutate(year = 2016,
            sitecode = 'ngee_arctic.Barrow') %>%
-    select(SampleName, datacode, sitecode, starts_with('leaf')) %>%
+    select(SampleName, speciesdatacode, sitecode, starts_with('leaf')) %>%
     setDT()
 
 barrow_2016_lma_file <- file.path(path_nga, "2016_Data", 
@@ -155,7 +156,7 @@ barrow_2016_lma <- fread(barrow_2016_lma_file) %>%
            sitecode = 'ngee_arctic.Barrow',
            leaf_mass_per_area = ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2')) %>%
     select(SampleName, year, sitecode, collectiondate,
-           datacode = Species, leaf_mass_per_area)
+           speciesdatacode = Species, leaf_mass_per_area)
 
 dat_2016 <- full_join(seward_2016_lma, barrow_2016_lma) %>%
     full_join(barrow_2016_chn)
@@ -177,60 +178,59 @@ samples_raw <- samples_spec %>%
                               plotcode)) %>%
     left_join(tbl(specdb, 'species_dict') %>% 
               filter(projectcode == 'ngee_arctic') %>%
-              select(datacode, speciescode) %>%
+              select(speciesdatacode, speciescode) %>%
               collect() %>% setDT()) %>%
-    select(-datacode)
+    select(-speciesdatacode)
 
 # Merge with SQL
 sites <- samples_raw %>%
     distinct(sitecode) %>%
-    rename(code = sitecode)
-merge_with_sql(sites, 'sites', 'code')
+    db_merge_into(db = specdb, table = 'sites', values = .,
+                  by = 'sitecode', id_colname = 'siteid')
 
 # TODO: Finer resolution for plot latitude and longitude...?
 plots <- samples_raw %>%
     group_by(sitecode, plotcode) %>%
     summarize(latitude = mean(latitude),
               longitude = mean(longitude)) %>%
-    rename(code = plotcode)
-merge_with_sql(plots, 'plots', 'code')
+    db_merge_into(db = specdb, table = 'plots', values = .,
+                  by = c('sitecode', 'plotcode'), id_colname = 'plotid')
 
 samples <- select(samples_raw, -SampleName, -latitude, -longitude) %>%
-    rename(code = samplecode)
-merge_with_sql(samples, 'samples', 'code')
+    db_merge_into(db = specdb, table = 'samples', values = .,
+                  by = 'samplecode', id_colname = 'sampleid')
+
+#TODO: Add instrument, specmethod
 
 spectra_info <- spectra_data %>%
     distinct(samplecode) %>%
-    mutate(type = 'reflectance')
-merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
-
-specid <- tbl(specdb, 'samples') %>%
-    filter(projectcode == 'ngee_arctic') %>%
-    select(samplecode = code) %>%
-    inner_join(tbl(specdb, 'spectra_info')) %>%
-    select(samplecode, spectraid = id) %>%
-    collect() %>% 
-    setDT()
+    mutate(spectratype = 'reflectance') %>%
+    db_merge_into(db = specdb, table = 'spectra_info', values = .,
+                  by = 'samplecode', id_colname = 'spectraid')
 
 spectra_data_in <- spectra_data %>%
-    left_join(specid) %>%
-    select(-samplecode)
-merge_with_sql(spectra_data_in, 'spectra_data', 'spectraid')
+    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
+    db_merge_into(db = specdb, table = 'spectra_data', values = .,
+                  by = 'spectraid', id_colname = 'spectradataid',
+                  return = FALSE, backend = 'psql_copy')
 
 trait_data <- traits_full %>%
     left_join(select(samples_raw, samplecode, SampleName)) %>%
     select(samplecode, starts_with('leaf_')) %>%
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait',
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- trait_data %>%
     distinct(trait) %>%
     mutate(unit = case_when(grepl('_per_area', .$trait) ~ 'kg m-2',
                             grepl('_pct_mass', .$trait) ~ '%',
                             grepl('ratio', .$trait) ~ 'unitless',
-                            .$trait == 'leaf_area' ~ 'm2'))
+                            .$trait == 'leaf_area' ~ 'm2')) %>%
+    db_merge_into(db = specdb, table = 'trait_info', values = .,
+                  by = 'trait', id_colname = 'traitid')
 
-merge_with_sql(trait_info, 'trait_info', 'trait')
-merge_with_sql(trait_data, 'trait_data', 'samplecode')
+traits <- db_merge_into(db = specdb, table = 'trait_data', values = trait_data,
+                        by = 'samplecode', id_colname = 'traitdataid')
 
 ## Sanity checks
 #samples %>% group_by(sitecode) %>% count()

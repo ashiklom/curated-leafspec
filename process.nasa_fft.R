@@ -9,7 +9,7 @@ projectcode <- "nasa_fft"
 specdb <- src_postgres('leaf_spectra')
 
 #' Set paths for FFT data
-PATH.FFT <- file.path("raw","NASA_FFT")
+PATH.FFT <- file.path("data","nasa_fft")
 
 #' # Process reflectance and transmittance data
 #' Set reflectance data path
@@ -22,7 +22,7 @@ names_samples <- c("Sample_Name" = "SampleName",
                    "Height" = "CanopyPosition",
                    'Site' = 'sitecode',
                    'Plot' = 'plotcode',
-                   'Species' = 'datacode')
+                   'Species' = 'speciesdatacode')
 
 names_specInfo <- c("Instrumentation" = "Instrument",
                     "Measurement_Type" = "Apparatus",
@@ -58,11 +58,11 @@ fixNeedleAge <- function(dat) {
 samples_refl <- select(nasa_fft.all_refl, -starts_with('Wave_')) %>%
     fixNeedleAge()
 spectra_refl <- select(nasa_fft.all_refl, samplecode, starts_with('Wave_')) %>%
-    melt(id.vars = 'samplecode') %>%
+    melt(id.vars = 'samplecode', value.name = 'spectravalue') %>%
     mutate(wavelength = as.numeric(gsub('Wave_', '', variable))) %>%
     select(-variable)
 spectra_info_refl <- distinct(spectra_refl, samplecode) %>%
-    mutate(type = 'reflectance')
+    mutate(spectratype = 'reflectance')
 
 #' Repeat above steps for transmittance
 message("Loading transmittance...")
@@ -74,19 +74,18 @@ nasa_fft.trans_all <- fread(PATH.trans, header=TRUE) %>%
 
 samples_trans <- select(nasa_fft.trans_all,
                         samplecode, SampleName, year,
-                        sitecode, plotcode, datacode,
+                        sitecode, plotcode, speciesdatacode,
                         CanopyPosition, Age) %>%
     fixNeedleAge()
 spectra_trans <- select(nasa_fft.trans_all, samplecode, starts_with('Wave_')) %>%
-    melt(id.vars = 'samplecode') %>%
+    melt(id.vars = 'samplecode', value.name = 'spectravalue') %>%
     mutate(wavelength = as.numeric(gsub('Wave_', '', variable))) %>%
     select(-variable)
 spectra_info_trans <- distinct(spectra_trans, samplecode) %>%
-    mutate(type = 'transmittance')
+    mutate(spectratype = 'transmittance')
 
 #' # Process chemistry data
 #' Set paths
-PATH.FFT <- file.path("raw/NASA_FFT")
 PATH.d15N <- file.path(PATH.FFT, 
                        "NASA_FFT_d15N_ANALYZED_DATA_UPDATED_4R.csv")
 PATH.lignin <- file.path(PATH.FFT,
@@ -98,13 +97,13 @@ PATH.SLA_LMA <- file.path(PATH.FFT,
 
 #' Read in data
 nasa_fft.d15N <- fread(PATH.d15N, header=TRUE) %>%
-    setnames('SPECIES', 'datacode')
+    setnames('SPECIES', 'speciesdatacode')
 nasa_fft.lignin <- fread(PATH.lignin, header=TRUE) %>%
-    setnames('SPECIES', 'datacode')
+    setnames('SPECIES', 'speciesdatacode')
 nasa_fft.cn <- fread(PATH.CN, header=TRUE) %>%
-    setnames('Species', 'datacode')
+    setnames('Species', 'speciesdatacode')
 nasa_fft.lma <- fread(PATH.SLA_LMA, header=TRUE) %>%
-    setnames('Species', 'datacode')
+    setnames('Species', 'speciesdatacode')
 
 #' Remove data with comments, which usually indicate that there's something 
 #' wrong with the data. TODO: Look more closely into this.
@@ -118,8 +117,8 @@ nasa_fft.lma <- nasa_fft.lma %>%
            LMA_g_DW_m2 = if_else(LMA_g_DW_m2 < 0, NA_real_, LMA_g_DW_m2))
 
 #' Extract only the values that we're interested in from each data.table.
-mergeby.lower <- c("Sample_Name", "Sample_Year", 'datacode')
-mergeby.caps <- c('SAMPLE_NAME', 'SAMPLE_YEAR', 'datacode')
+mergeby.lower <- c("Sample_Name", "Sample_Year", 'speciesdatacode')
+mergeby.caps <- c('SAMPLE_NAME', 'SAMPLE_YEAR', 'speciesdatacode')
 nasa_fft.d15N <- nasa_fft.d15N[, c(mergeby.caps, "SAMPLE_dN15"), with=F]
 nasa_fft.lignin <- nasa_fft.lignin[, c(mergeby.caps, "ADF_PERC_DW", "ADL_PERC_DW",
                              "CELL_PERC_DW"), with=F]
@@ -170,56 +169,99 @@ samples_all <- samples_refl %>%
     left_join(anti_join(samples_trans, samples_refl, 'samplecode')) %>%
     full_join(samples_traits) %>%
     left_join(tbl(specdb, 'species_dict') %>% 
-              select(-id) %>% 
+              select(-speciesdictid) %>% 
               collect() %>% 
               setDT()) %>%
-    select(-datacode) %>%
+    select(-speciesdatacode) %>%
     mutate(projectcode = 'nasa_fft',
            sitecode = paste(projectcode, sitecode, sep = '.'),
-           plotcode = paste(sitecode, plotcode, sep = '.'))
+           plotcode = paste(projectcode, plotcode, sep = '.'))
 
 sites <- distinct(samples_all, sitecode) %>% 
-    rename(code = sitecode)
-merge_with_sql(sites, 'sites')
+    db_merge_into(db = specdb, table = 'sites', values = .,
+                  by = 'sitecode', id_colname = 'siteid')
 
-# TODO: Add latitude and longitude
-plots <- distinct(samples_all, plotcode) %>%
-    rename(code = plotcode)
-merge_with_sql(plots, 'plots')
+plots <- read_csv(file.path(PATH.FFT, 'Stand_Info', 'Plot_Locations', 
+                            'Aggregated_N_Coords_ALL.csv')) %>%
+    select(PLOT, sitecode = SITE, latitude = LAT, longitude = LON) %>%
+    mutate(plotcode = paste(projectcode, PLOT, sep = '.')) %>%
+    setDT() %>%
+    right_join(samples_all %>% distinct(sitecode, plotcode)) %>%
+    db_merge_into(db = specdb, table = 'plots', values = .,
+                  by = c('plotcode', 'sitecode'), id_colname = 'plotid')
 
+## Code to examine missing plots
+#semi <- plots %>% semi_join(samples_all)
+#sp <- anti_join(samples_all, plots) %>% distinct(sitecode, plotcode)
+#spdat <- sp %>% 
+    #left_join(samples_all) %>%
+    #group_by(sitecode) %>%
+    #count()
+#ps <- anti_join(plots, samples_all) %>% distinct(plotcode)
+    
 samples <- samples_all %>%
-    select(projectcode, code = samplecode, year, 
-           sitecode, plotcode, speciescode)
-merge_with_sql(samples, 'samples')
+    select(projectcode, samplecode, year, 
+           sitecode, plotcode, speciescode) %>%
+    db_merge_into(db = specdb, table = 'samples', values = .,
+                  by = c('samplecode'), id_colname = 'sampleid')
 
-spectra_info <- left_join(spectra_info_refl, spectra_info_trans)
-merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
+condition_info <- tribble(
+    ~condition, ~conditiondescription,
+    'CanopyPosition', 'Position in canopy (bottom, middle, top)',
+    'NeedleOldNew', 'Whether needles are newly grown (new; age < 1) or not (old; age > 1)',
+    'NeedleAge', 'Needle age in years') %>%
+    db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
+                  by = c('condition', 'conditiondescription'),
+                  id_colname = 'conditionid')
 
-specid <- tbl(specdb, 'spectra_info') %>%
-    rename(spectraid = id) %>%
-    right_join(tbl(specdb, 'samples') %>% 
-               filter(projectcode == 'nasa_fft') %>%
-               select(samplecode = code)) %>%
-    select(spectraid, samplecode) %>%
-    collect() %>%
+sample_condition <- samples_all %>%
+    select(samplecode, CanopyPosition, NeedleOldNew, NeedleAge) %>%
+    melt(id.vars = 'samplecode', variable.name = 'condition',
+         value.name = 'conditionvalue', na.rm = TRUE) %>%
+    db_merge_into(db = specdb, table = 'sample_condition', values = .,
+                  by = 'samplecode', id_colname = 'conditiondataid')
+
+
+instruments <- db_merge_into(db = specdb, table = 'instruments',
+                             values = tibble(instrumentname = 'ASD FieldSpec 3'),
+                             by = 'instrumentname', id_colname = 'instrumentid')
+
+specmethods <- tribble(
+    ~spectratype, ~apparatus, ~calibration,
+    'reflectance', 'Leaf clip', 'Spectralon ratio',
+    'transmittance', 'Integrating sphere', NA) %>%
+    mutate(instrumentid = instruments$instrumentid) %>%
+    db_merge_into(db = specdb, table = 'specmethods', values = .,
+                  by = c('apparatus', 'calibration'),
+                  id_colname = 'specmethodid') %>%
     setDT()
+
+spectra_info <- left_join(spectra_info_refl, spectra_info_trans) %>%
+    left_join(specmethods %>% select(spectratype, specmethodid)) %>%
+    db_merge_into(db = specdb, table = 'spectra_info', values = .,
+                  by = 'samplecode', id_colname = 'spectraid')
 
 spectra_data <- spectra_refl %>%
     left_join(spectra_trans) %>%
-    left_join(specid) %>%
-    select(-samplecode)
-merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
+    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
+    select(-samplecode) %>%
+    db_merge_into(db = specdb, table = 'spectra_data', values = .,
+                  by = 'spectraid', id_colname = 'spectradataid',
+                  return = FALSE, backend = 'psql_copy')
 
 traits <- nasa_fft.traits %>%
     select(samplecode, starts_with('leaf')) %>%
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait',
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- traits %>%
     distinct(trait) %>%
     mutate(unit = case_when(grepl('pct_mass', .$trait) ~ '%',
                             grepl('_per_area|thickness', .$trait) ~ 'kg m-2',
                             grepl('_ratio', .$trait) ~ 'unitless',
-                            TRUE ~ NA_character_))
+                            TRUE ~ NA_character_)) %>%
+    db_merge_into(db = specdb, table = 'trait_info', values = .,
+                  by = 'trait', id_colname = 'traitid')
 
-merge_with_sql(trait_info, 'trait_info', 'trait')
-merge_with_sql(traits, 'trait_data', 'samplecode')
+traits <- db_merge_into(db = specdb, table = 'trait_data', values = traits,
+                        by = c('samplecode', 'trait'), id_colname = 'traitdataid')

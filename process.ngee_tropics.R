@@ -19,11 +19,11 @@ chemfile <- list.files(path_year, "Leaf_Samples", full.names = TRUE)
 chemdat <- read_excel(chemfile, sheet = 4) %>%
     setDT() %>%
     mutate_if(is.numeric, na_if, y = -9999) %>%
-    rename(datacode = Species, 
+    rename(speciesdatacode = Species, 
            SampleName = Barcode,
            canopyposition = Canopy_position) %>%
     mutate(leaf_water_potential = ud.convert(LWP_bar, 'bar', 'Pa')) %>%
-    select(SampleName, datacode, canopyposition,
+    select(SampleName, speciesdatacode, canopyposition,
            starts_with('leaf_', ignore.case = FALSE))
 
 specfile <- list.files(path_year, "leaf_spectra",
@@ -37,9 +37,9 @@ spectra_raw <- read_excel(specfile) %>%
     select(SampleName = Spectra, sitecode, collectiondate,
             Instrument, starts_with('Wave_'))
 
-spectra_raw %>%
-    select(-starts_with('Wave_')) %>%
-    glimpse()
+#spectra_raw %>%
+    #select(-starts_with('Wave_')) %>%
+    #glimpse()
 
 samples <- chemdat %>%
     select(-canopyposition, -starts_with('leaf_')) %>%
@@ -53,24 +53,29 @@ samples <- chemdat %>%
            plotcode = sitecode) %>%
     left_join(tbl(specdb, 'species_dict') %>% 
               filter(projectcode == project_code) %>% 
-              select(datacode, speciescode) %>%
+              select(speciesdatacode, speciescode) %>%
               collect() %>%
               setDT()) %>%
-    select(-datacode)
+    select(-speciesdatacode)
 
 sites <- samples %>%
     distinct(sitecode) %>%
-    rename(code = sitecode)
-merge_with_sql(sites, 'sites', 'code')
+    db_merge_into(db = specdb, table = 'sites', values = .,
+                  by = 'sitecode', id_colname = 'siteid')
 
 plots <- samples %>%
     distinct(sitecode, plotcode) %>%
-    rename(code = plotcode)
-merge_with_sql(plots, 'plots', 'code')
+    db_merge_into(db = specdb, table = 'plots', values = .,
+                  by = 'plotcode', id_colname = 'plotid')
 
-samples %>% 
-    rename(code = samplecode) %>%
-    merge_with_sql('samples', 'code')
+samples <- db_merge_into(db = specdb, table = 'samples', values = samples,
+                            by = 'samplecode', id_colname = 'sampleid')
+
+sample_condition_info <- tibble(
+    condition = 'sunshade',
+    conditiondescription = 'Whether leaf is sunlit (sun; same as canopyposition "top") or shaded (shade; same as canopyposition "mid" or "bot")') %>%
+    db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
+                  by = c('condition', 'conditiondescription'), id_colname = 'conditionid')
 
 sample_condition <- chemdat %>%
     distinct(SampleName, canopyposition) %>%
@@ -78,67 +83,60 @@ sample_condition <- chemdat %>%
                              sunlit = 'sun',
                              understory = 'shade')) %>%
     select(-canopyposition) %>%
-    melt(id.vars = 'SampleName', variable.name = 'condition') %>%
+    melt(id.vars = 'SampleName', variable.name = 'condition',
+         value = 'conditionvalue') %>%
     left_join(select(samples, SampleName, samplecode)) %>%
-    select(-SampleName)
-
-sample_condition_info <- distinct(sample_condition, condition)
-
-merge_with_sql(sample_condition_info, 'sample_condition_info', 'condition')
-merge_with_sql(sample_condition, 'sample_condition', 'samplecode')
+    select(-SampleName) %>%
+    db_merge_into(db = specdb, table = 'sample_condition', values = .,
+                  by = c('samplecode', 'condition'), id_colname = 'conditiondataid')
 
 trait_data <- chemdat %>%
     left_join(select(samples, samplecode, SampleName)) %>%
     select(samplecode, starts_with('leaf_', ignore.case = FALSE)) %>%
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait',
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- trait_data %>%
     distinct(trait) %>%
     mutate(unit = case_when(trait == 'leaf_water_potential' ~ 'Pa', 
-                            TRUE ~ NA_character_))
+                            TRUE ~ NA_character_)) %>%
+    db_merge_into(db = specdb, table = 'trait_info', values = .,
+                  by = 'trait', id_colname = 'traitid')
 
-merge_with_sql(trait_info, 'trait_info', 'trait')
-merge_with_sql(trait_data, 'trait_data', 'samplecode')
+trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = trait_data,
+                            by = c('samplecode', 'trait'), id_colname = 'traitdataid')
 
 instruments <- spectra_raw %>%
     distinct(Instrument) %>%
-    rename(name = Instrument)
-merge_with_sql(instruments, 'instruments', 'name')
+    rename(instrumentname = Instrument) %>%
+    db_merge_into(db = specdb, table = 'instruments', values = .,
+                  by = 'instrumentname', id_colname = 'instrumentid')
 
 # TODO: Add more methods information
-specmethods <- tbl(specdb, 'instruments') %>%
-    filter(name == instruments$name) %>%
-    select(instrumentid = id) %>%
-    collect() %>%
-    setDT()
-merge_with_sql(specmethods, 'specmethods', 'instrumentid')
+specmethods <- instruments %>%
+    mutate(specmethodcomment = 'NGEE Tropics') %>%
+    db_merge_into(db = specdb, table = 'specmethods', values = .,
+                  by = c('instrumentid', 'specmethodcomment'),
+                  id_colname = 'specmethodid')
 
 spectra_info <- spectra_raw %>%
-    select(SampleName, Instrument) %>%
+    select(SampleName, instrumentname = Instrument) %>%
     left_join(select(samples, samplecode, SampleName)) %>%
-    left_join(tbl(specdb, 'instruments') %>%
-              select(instrumentid = id, Instrument = name) %>%
-              left_join(tbl(specdb, 'specmethods') %>%
-                        select(instrumentid, specmethodid = id)) %>%
-              select(Instrument, specmethodid) %>%
-              collect() %>%
-              setDT()) %>%
-    mutate(type = 'reflectance') %>%
-    select(-Instrument, -SampleName)
-merge_with_sql(spectra_info, 'spectra_info', 'samplecode')
+    left_join(specmethods) %>%
+    mutate(spectratype = 'reflectance') %>%
+    db_merge_into(db = specdb, table = 'spectra_info', values = .,
+                  by = 'samplecode', id_colname = 'spectraid')
 
 spectra_data <- spectra_raw %>%
     select(SampleName, starts_with('Wave_')) %>%
     left_join(select(samples, samplecode, SampleName)) %>%
-    left_join(tbl(specdb, 'samples') %>% 
-              filter(projectcode == project_code) %>%
-              select(samplecode = code) %>%
-              inner_join(tbl(specdb, 'spectra_info') %>% 
-                         select(spectraid = id, samplecode)) %>%
-              collect() %>%
-              setDT()) %>%
+    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
     select(spectraid, starts_with('Wave_')) %>%
-    melt(id.vars = 'spectraid', variable.name = 'wavelength') %>%
+    melt(id.vars = 'spectraid', variable.name = 'wavelength', 
+         value.name = 'spectravalue') %>%
     mutate(wavelength = as.numeric(gsub('Wave_', '', wavelength)))
-merge_with_sql(spectra_data, 'spectra_data', 'spectraid')
+
+mrg <- db_merge_into(db = specdb, table = 'spectra_data', values = spectra_data, 
+                     by = 'spectraid', id_colname = 'spectradataid',
+                     return = FALSE, backend = 'psql_copy')
 
