@@ -8,6 +8,7 @@ species <- rbind(usda_try, othersp, fill = TRUE) %>%
     rename(speciescode = code)
 
 species <- db_merge_into(db = specdb, table = 'species', values = species,
-                     by = 'speciescode', id_colname = 'speciesid')
+                     by = 'speciescode', id_colname = 'speciesid', 
+                     backend = 'psql_copy')
 
 print(species)

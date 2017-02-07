@@ -179,8 +179,7 @@ samples_raw <- samples_spec %>%
     left_join(tbl(specdb, 'species_dict') %>% 
               filter(projectcode == 'ngee_arctic') %>%
               select(speciesdatacode, speciescode) %>%
-              collect() %>% setDT()) %>%
-    select(-speciesdatacode)
+              collect() %>% setDT())
 
 # Merge with SQL
 sites <- samples_raw %>%
@@ -196,9 +195,8 @@ plots <- samples_raw %>%
     db_merge_into(db = specdb, table = 'plots', values = .,
                   by = c('sitecode', 'plotcode'), id_colname = 'plotid')
 
-samples <- select(samples_raw, -SampleName, -latitude, -longitude) %>%
-    db_merge_into(db = specdb, table = 'samples', values = .,
-                  by = 'samplecode', id_colname = 'sampleid')
+samples <- db_merge_into(db = specdb, table = 'samples', values = samples_raw,
+                            by = 'samplecode', id_colname = 'sampleid')
 
 #TODO: Add instrument, specmethod
 

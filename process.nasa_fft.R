@@ -162,29 +162,56 @@ nasa_fft.traits <- merge(merge.caps, merge.lower, by=mergeby.lower, all=T) %>%
            year = Sample_Year) %>%
     mutate(samplecode = paste(projectcode, SampleName, year, sep = '|'))
 samples_traits <- nasa_fft.traits %>%
-    select(samplecode, SampleName, year)
+    select(samplecode, SampleName, year, speciesdatacode)
 
 #' # Set up SQL tables
+#n_dup <- function(dat) print(sum(duplicated(dat$samplecode)))
 samples_all <- samples_refl %>%
     left_join(anti_join(samples_trans, samples_refl, 'samplecode')) %>%
     full_join(samples_traits) %>%
+# Missing species:
+    # GRAS -- Shawn thinks it's just "grass" of an unknown species
+    # SORI -- Unknown site (MW), unknown species
+    #filter(!speciesdatacode %in% c('SORI', 'GRAS')) %>%   # Unknown species
     left_join(tbl(specdb, 'species_dict') %>% 
-              select(-speciesdictid) %>% 
+              filter(projectcode == 'nasa_fft') %>%
+              select(speciescode, speciesdatacode) %>% 
               collect() %>% 
               setDT()) %>%
-    select(-speciesdatacode) %>%
+    .[is.na(plotcode), plotcode := stringr::str_extract(SampleName, "^[[:alnum:]]+")] %>%
+    .[is.na(sitecode), sitecode := stringr::str_extract(plotcode, "^[[:alpha:]]+")] %>%
+# This is probably Madison, WI
+    #filter(sitecode != 'MW') %>% 
     mutate(projectcode = 'nasa_fft',
            sitecode = paste(projectcode, sitecode, sep = '.'),
            plotcode = paste(projectcode, plotcode, sep = '.'))
 
+samples_all %>%
+    group_by(samplecode) %>%
+    summarize(n = n()) %>%
+    filter(n > 1)
+
+## Code to examine missing species
+#samples_refl %>% distinct(speciesdatacode)
+#samples_trans %>% distinct(speciesdatacode)
+#samples_all %>% 
+    #filter(is.na(speciescode)) %>% 
+    #select(speciesdatacode, sitecode, samplecode)
+#sp <- samples_all %>% 
+    #filter(is.na(speciescode)) %>%
+    #select(speciesdatacode)
+
+ndup <- function(dat, colname) print(sum(duplicated(dat[[colname]])))
 sites <- distinct(samples_all, sitecode) %>% 
     db_merge_into(db = specdb, table = 'sites', values = .,
                   by = 'sitecode', id_colname = 'siteid')
 
 plots <- read_csv(file.path(PATH.FFT, 'Stand_Info', 'Plot_Locations', 
                             'Aggregated_N_Coords_ALL.csv')) %>%
-    select(PLOT, sitecode = SITE, latitude = LAT, longitude = LON) %>%
-    mutate(plotcode = paste(projectcode, PLOT, sep = '.')) %>%
+    distinct(PLOT, SITE, LAT, LON) %>%
+    rename(latitude = LAT, longitude = LON) %>%
+    mutate(sitecode = paste(projectcode, SITE, sep = '.'),
+           plotcode = paste(projectcode, PLOT, sep = '.')) %>%
     setDT() %>%
     right_join(samples_all %>% distinct(sitecode, plotcode)) %>%
     db_merge_into(db = specdb, table = 'plots', values = .,

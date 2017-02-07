@@ -41,6 +41,8 @@ spectra_raw <- read_excel(specfile) %>%
     #select(-starts_with('Wave_')) %>%
     #glimpse()
 
+# NOTE: 20 data points have no species codes associated with them
+
 samples <- chemdat %>%
     select(-canopyposition, -starts_with('leaf_')) %>%
     full_join(select(spectra_raw, -starts_with('Wave_'), -Instrument)) %>%
@@ -55,8 +57,11 @@ samples <- chemdat %>%
               filter(projectcode == project_code) %>% 
               select(speciesdatacode, speciescode) %>%
               collect() %>%
-              setDT()) %>%
-    select(-speciesdatacode)
+              setDT())
+
+#samples %>%
+    #filter(is.na(speciescode), !is.na(speciesdatacode)) %>%
+    #distinct(speciesdatacode)
 
 sites <- samples %>%
     distinct(sitecode) %>%
@@ -140,3 +145,5 @@ mrg <- db_merge_into(db = specdb, table = 'spectra_data', values = spectra_data,
                      by = 'spectraid', id_colname = 'spectradataid',
                      return = FALSE, backend = 'psql_copy')
 
+# Useful species list from Smithsonian Tropical Research Institute:
+# http://www.stri.si.edu/sites/esp/tesp/plant_species.htm

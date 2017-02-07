@@ -17,6 +17,7 @@ CAREX,"Carex L.",CAREX,USDA_Plants,NASA_FFT,NA,NA
 CAAL,"Carya alba (L.) Nutt.",CATO6,USDA_Plants,NASA_FFT,NA,NA
 CAOV,"Carya ovata (Mill.) K. Koch",CAOV2,USDA_Plants,NASA_FFT,NA,NA
 CEOC,"Celtis occidentalis L.",CEOC,USDA_Plants,NASA_FFT,NA,NA
+CHCA,"Chamaedaphne calyculata (L.) Moench",CHCA2,USDA_Plants,NASA_FFT,NA,NA
 COFL,"Cornus florida L.",COFL2,USDA_Plants,NASA_FFT,NA,NA
 COAM,"Corylus americana Walter",COAM3,USDA_Plants,NASA_FFT,NA,NA
 FAGR,"Fagus grandifolia Ehrh.",FAGR,USDA_Plants,NASA_FFT,NA,NA
@@ -50,6 +51,7 @@ QUEL,"Quercus ellipsoidalis E.J. Hill",QUEL,USDA_Plants,NASA_FFT,NA,NA
 QUMA,"Quercus macrocarpa Michx.",QUMA2,USDA_Plants,NASA_FFT,NA,NA
 QUPR,"Quercus prinus L.",QUMO4,USDA_Plants,NASA_FFT,NA,NA
 QURU,"Quercus rubra L.",QURU,USDA_Plants,NASA_FFT,NA,NA
+QUVE,"Quercus velutina Lam.",QUVE,USDA_Plants,NASA_FFT,NA,NA
 RHCA,"Rhamnus cathartica L.",RHCA3,USDA_Plants,NASA_FFT,NA,NA
 ROPS,"Robinia pseudoacacia L.",ROPS,USDA_Plants,NASA_FFT,NA,NA
 SAAL,"Sassafras albidum (Nutt.) Nees",SAAL5,USDA_Plants,NASA_FFT,NA,NA
@@ -221,6 +223,8 @@ DUFI,"Dupontia fisheri R.Br.",DUFI,USDA_Plants,ngee_arctic,NA,NA
 ERAN6,"Eriophorum angustifolium Honck.",ERAN6,USDA_Plants,ngee_arctic,NA,NA
 PEFR5,"Petasites frigidus (L.) Fr.",PEFR5,USDA_Plants,ngee_arctic,NA,NA
 SAPU15,"Salix pulchra Cham.",SAPU15,USDA_Plants,ngee_arctic,NA,NA
+SALPUL,"Salix pulchra Cham.",SAPU15,USDA_Plants,ngee_arctic,NA,NA
+SALRIC,"Salix richardsonii Hook.",SARI4,USDA_Plants,ngee_arctic,NA,NA
 VAVI,"Vaccinium vitis-idaea L.",VAVI,USDA_Plants,ngee_arctic,NA,NA
 SARO2,"Salix rotundifolia Trautv.",SARO2,USDA_Plants,ngee_arctic,NA,NA
 POAR2,"Poa arctica R. Br.",POAR2,USDA_Plants,ngee_arctic,NA,NA
@@ -251,7 +255,7 @@ APEIME,"Apeiba membranacea Spruce ex Benth.",kew-2643251,ThePlantList,ngee_tropi
 GUATDU,"Guatteria dumetorum R.E.Fr.",kew-2834344,ThePlantList,ngee_tropics,"Guatteria dumetorum",NA
 CECRIN,"Cecropia insignis Liebm.",kew-2707049,ThePlantList,ngee_tropics,"Cecropia insignis",NA
 INGAPE,"Inga pezizifera Benth.",ild-12189,ThePlantList,ngee_tropics,NA,NA
-SIMAM,NA,NA,NA,ngee_tropics,NA,NA
+SIMAM,"Simarouba amara Aubl.",kew-2580434,ThePlantList,ngee_tropics,NA,NA
 ALSEBL,"Alseis blackiana Hemsl.",kew-6968,ThePlantList,ngee_tropics,NA,NA
 GUSTSU,"Gustavia superba (Kunth) O.Berg",kew-314-067,ThePlantList,ngee_tropics,NA,NA
 MICOAR,"Miconia argentea (Sw.) DC.",tro-20302666,ThePlantList,ngee_tropics,NA,NA
@@ -262,7 +266,7 @@ CAPI,"Capparis indica (L.) Druce",CAIN5,USDA_Plants,ngee_tropics,NA,NA
 PPRE,"Piper reticulatum L.",PIRE10,USDA_Plants,ngee_tropics,NA,NA
 PIT1RU,"Cojoba rufescens (Benth.) Britton & Rose",ild-17602,ThePlantList,ngee_tropics,NA,NA
 CUPACI,"Cupania cinerea Poepp.",kew-2747501,ThePlantList,ngee_tropics,NA,NA
-ALBIAD,NA,NA,NA,ngee_tropics,NA,NA
-"Acer rubrum",NA,ACRU,USDA_Plants,yang_pheno,NA,"Acer rubrum L."
-"Betula alleghaniensis",NA,BEAL2,USDA_Plants,yang_pheno,NA,"Betula alleghaniensis Britton"
-"Quercus rubra",NA,QURU,USDA_Plants,yang_pheno,NA,"Quercus rubra L."
+ALBIAD,"Albizia Durazz.",ALBIZ,USDA_Plants,ngee_tropics,NA,NA
+"Acer rubrum","Acer rubrum L.",ACRU,USDA_Plants,yang_pheno,NA,"Acer rubrum L."
+"Betula alleghaniensis","Betula alleghaniensis Britton",BEAL2,USDA_Plants,yang_pheno,NA,"Betula alleghaniensis Britton"
+"Quercus rubra","Quercus rubra L.",QURU,USDA_Plants,yang_pheno,NA,"Quercus rubra L."
