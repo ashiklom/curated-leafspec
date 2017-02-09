@@ -192,6 +192,10 @@ plots <- samples_raw %>%
     group_by(sitecode, plotcode) %>%
     summarize(latitude = mean(latitude),
               longitude = mean(longitude)) %>%
+    mutate(latitude = if_else(is.na(latitude) & sitecode == 'ngee_arctic.Barrow', 
+                              71.275764, latitude),
+           longitude = if_else(is.na(longitude) & sitecode == 'ngee_arctic.Barrow',
+                               -156.641386, longitude)) %>%
     db_merge_into(db = specdb, table = 'plots', values = .,
                   by = c('sitecode', 'plotcode'), id_colname = 'plotid')
 
