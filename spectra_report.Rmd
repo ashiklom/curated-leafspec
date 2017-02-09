@@ -36,7 +36,7 @@ kable(project_counts, caption = 'Number of samples per project')
 
 ```{r projectspectra}
 spectra_counts <- tbl(specdb, 'samples') %>%
-    left_join(tbl(specdb, 'spectra_info')) %>%
+    inner_join(tbl(specdb, 'spectra_info')) %>%
     group_by(projectcode, spectratype) %>%
     summarize(nsamp = n()) %>%
     arrange(desc(nsamp)) %>%
@@ -69,7 +69,7 @@ missing_species <- tbl(specdb, 'samples') %>%
     summarize(nsamp = n()) %>%
     arrange(desc(nsamp)) %>%
     collect()
-kable(missing_species)
+kable(missing_species, caption = 'Samples with unidentified species, by project')
 ```
 
 ```{r species, echo = FALSE, fig.cap = 'Samples by species'}
@@ -80,9 +80,10 @@ samples_by_species <- tbl(specdb, 'samples') %>%
     left_join(tbl(specdb, 'species')) %>%
     collect() %>%
     mutate(speciescode = factor(speciescode, levels = speciescode))
-ggplot(samples_by_species) + 
-    aes(x = speciescode, y = nsamp) +
-    geom_bar(stat = 'identity')
 kable(samples_by_species %>% select(scientificname, nsamp) %>% head(20),
       caption = 'Top 20 species')
+ggplot(samples_by_species) + 
+    aes(x = speciescode, y = nsamp) +
+    geom_bar(stat = 'identity') +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```

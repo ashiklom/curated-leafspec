@@ -30,7 +30,7 @@ site_plot <- tibble(
                   by = 'plotcode', id_colname = 'plotid')
 
 #' Set paths
-PATH.ANGERS <- file.path("data", "ANGERS")
+PATH.ANGERS <- file.path("data", "angers")
 PATH.spec <- file.path(PATH.ANGERS, "spec")
 PATH.chem <- file.path(PATH.ANGERS, "LDB_angers2003.csv")
 
