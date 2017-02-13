@@ -5,7 +5,7 @@
 #' 
 
 library(specprocess)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 projectcode <- 'angers'
 
 #projects <- data.table(
@@ -97,13 +97,11 @@ samples <- full_join(spec_samples, chem_samples) %>%
 spectra_info <- specdat %>% 
     distinct(samplecode, spectratype) %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = ., 
-                  by = 'samplecode', id_colname = 'spectraid')
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- specdat %>%
     left_join(spectra_info) %>%
-    db_merge_into(db = specdb, table = 'spectra_data', values = ., 
-                  by = 'spectraid', id_colname = 'spectradataid',
-                  backend = 'psql_copy', return = FALSE)
+    write_spectradata
 
 traits <- angers.chem %>%
     select(samplecode, starts_with('leaf_')) %>% 

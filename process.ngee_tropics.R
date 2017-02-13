@@ -1,6 +1,6 @@
 library(specprocess)
 library(readxl)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 
 project_code <- "ngee_tropics"
 
@@ -130,20 +130,17 @@ spectra_info <- spectra_raw %>%
     left_join(specmethods) %>%
     mutate(spectratype = 'reflectance') %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
-                  by = 'samplecode', id_colname = 'spectraid')
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- spectra_raw %>%
     select(SampleName, starts_with('Wave_')) %>%
     left_join(select(samples, samplecode, SampleName)) %>%
-    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
+    left_join(spectra_info) %>%
     select(spectraid, starts_with('Wave_')) %>%
     melt(id.vars = 'spectraid', variable.name = 'wavelength', 
          value.name = 'spectravalue') %>%
-    mutate(wavelength = as.numeric(gsub('Wave_', '', wavelength)))
-
-mrg <- db_merge_into(db = specdb, table = 'spectra_data', values = spectra_data, 
-                     by = 'spectraid', id_colname = 'spectradataid',
-                     return = FALSE, backend = 'psql_copy')
+    mutate(wavelength = as.numeric(gsub('Wave_', '', wavelength))) %>%
+    write_spectradata
 
 # Useful species list from Smithsonian Tropical Research Institute:
 # http://www.stri.si.edu/sites/esp/tesp/plant_species.htm

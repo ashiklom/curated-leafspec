@@ -6,7 +6,7 @@
 #' # Setup
 library(specprocess)
 projectcode <- "nasa_fft"
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 
 #' Set paths for FFT data
 PATH.FFT <- file.path("data","nasa_fft")
@@ -266,15 +266,13 @@ specmethods <- tribble(
 spectra_info <- left_join(spectra_info_refl, spectra_info_trans) %>%
     left_join(specmethods %>% select(spectratype, specmethodid)) %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
-                  by = 'samplecode', id_colname = 'spectraid')
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- spectra_refl %>%
     left_join(spectra_trans) %>%
-    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
+    left_join(spectra_info) %>%
     select(-samplecode) %>%
-    db_merge_into(db = specdb, table = 'spectra_data', values = .,
-                  by = 'spectraid', id_colname = 'spectradataid',
-                  return = FALSE, backend = 'psql_copy')
+    write_spectradata
 
 traits <- nasa_fft.traits %>%
     select(samplecode, starts_with('leaf')) %>%

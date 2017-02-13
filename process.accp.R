@@ -1,5 +1,5 @@
 library(specprocess)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 project.code <- 'accp'
 accp_path <- 'data/accp'
 
@@ -169,11 +169,7 @@ specdata <- accp_spec %>%
     select(samplecode, wavelength, spectravalue = value) %>%
     left_join(specinfo %>% select(samplecode, spectraid)) %>%
     select(-samplecode) %>%
-    db_merge_into(db = specdb, table = 'spectra_data',
-                  values = ., by = 'spectraid', 
-                  id_colname = 'spectradataid', 
-                  backend = 'psql_copy', 
-                  return = FALSE)
+    write_spectradata
 
 # Traits table
 traits <- all_samples %>%

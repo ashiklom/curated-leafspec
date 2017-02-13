@@ -1,2 +1,3 @@
 #!/bin/bash
-psql -d leaf_spectra -f schema.pgsql
+rm -rf leaf_spectra.db
+sqlite3 leaf_spectra.db < schema.sql

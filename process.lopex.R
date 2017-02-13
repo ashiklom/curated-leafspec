@@ -1,5 +1,5 @@
 library(specprocess)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 data_path <- 'data/lopex'
 projectcode <- 'lopex'
 
@@ -115,14 +115,12 @@ spectra_info <- specdat %>%
     distinct(samplecode, spectratype) %>%
     mutate(specmethodid = specmethods$specmethodid) %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
-                  by = 'samplecode', id_colname = 'spectraid')
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- specdat %>%
     select(-fname) %>%
-    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
-    db_merge_into(db = specdb, table = 'spectra_data', values = .,
-                  by = 'spectraid', id_colname = 'spectradataid',
-                  return = FALSE, backend = 'psql_copy')
+    left_join(spectra_info %>% select(samplecode, spectraid, spectratype)) %>%
+    write_spectradata
 
 traits <- lopex.traits %>%
     select(samplecode, starts_with('leaf_')) %>% 

@@ -1,5 +1,5 @@
 library(specprocess)
-specdb <- src_postgres('leaf_spectra')
+specdb <- src_sqlite('leaf_spectra.db')
 
 #raw2code <- readRDS('species.rds') %>% setDT()
 #write.table(raw2code, file = 'data/common/species_dict.csv', 
@@ -14,6 +14,6 @@ dict <- raw2code %>%
     mutate(projectcode = tolower(projectcode))
 
 dict <- db_merge_into(db = specdb, table = 'species_dict',
-                      values = dict, by = c('speciescode'),
+                      values = dict, by = 'speciescode',
                       id_colname = 'speciesdictid')
 print(dict)

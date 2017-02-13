@@ -1,7 +1,7 @@
 library(specprocess)
 library(readxl)
 library(lubridate)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 
 #' Projects table
 project_code <- "yang_pheno"
@@ -206,12 +206,8 @@ readYang <- function(SampleYear, Site) {
                     by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
     spectra_data <- spectra_raw %>%
-        select(samplecode, wavelength, spectravalue) %>%
-        left_join(spectra_info %>% select(samplecode, spectraid)) %>%
-        select(spectraid, wavelength, spectravalue)
-    mrg <- db_merge_into(db = specdb, table = 'spectra_data', values = spectra_data,
-                         by = 'spectraid', id_colname = 'spectradataid',
-                         return = FALSE, backend = 'psql_copy')
+        left_join(spectra_info) %>%
+        write_spectradata
 }
 
 ##options(error = recover)

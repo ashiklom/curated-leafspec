@@ -4,7 +4,7 @@ library(lubridate)
 
 projectcode <- "ngee_arctic"
 path_nga <- "data/ngee_arctic"
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 
 scale_wl <- function(., scale_factor = 0.01) {
     mutate_at(., vars(starts_with('Wave_')), funs(. * scale_factor))
@@ -208,13 +208,11 @@ spectra_info <- spectra_data %>%
     distinct(samplecode) %>%
     mutate(spectratype = 'reflectance') %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
-                  by = 'samplecode', id_colname = 'spectraid')
+                  by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data_in <- spectra_data %>%
-    left_join(spectra_info %>% select(samplecode, spectraid)) %>%
-    db_merge_into(db = specdb, table = 'spectra_data', values = .,
-                  by = 'spectraid', id_colname = 'spectradataid',
-                  return = FALSE, backend = 'psql_copy')
+    left_join(spectra_info) %>%
+    write_spectradata
 
 trait_data <- traits_full %>%
     left_join(select(samples_raw, samplecode, SampleName)) %>%

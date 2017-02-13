@@ -1,18 +1,8 @@
-#' Load packages
-suppressPackageStartupMessages({
-    library(dtplyr)
-    library(data.table)
-    library(dplyr)
-    library(RPostgreSQL)
-    library(reshape2)
-    library(specobs)
-    library(googlesheets)
-})
+specdb <- dplyr::src_sqlite('leaf_spectra.db')
+DBI::dbGetQuery(specdb$con, 'PRAGMA foreign_keys = on')
 
-id_separator <- "|"
-
-metadata <- readLines("metadata.txt")
-traits <- readLines("traits.txt")
-spec_cols <- c("Reflectance", "Transmittance")
-all_cols <- c(metadata, traits, spec_cols)
-
+write_spectradata <- function(values) {
+    db_merge_into(db = specdb, table = 'spectra_data', values = values, 
+                  by = 'spectraid', id_colname = 'spectradataid',
+                  backend = 'sqlite_import', return = FALSE)
+}

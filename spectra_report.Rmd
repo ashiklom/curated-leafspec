@@ -11,7 +11,7 @@ suppressPackageStartupMessages({
     library(ggplot2)
     library(ggmap)
 })
-specdb <- src_postgres('leaf_spectra')
+specdb <- src_sqlite('leaf_spectra.db')
 opts_chunk$set(echo = FALSE, message = FALSE)
 ```
 

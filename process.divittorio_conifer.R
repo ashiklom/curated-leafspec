@@ -1,5 +1,5 @@
 library(specprocess)
-specdb <- src_postgres('leaf_spectra')
+source('common.R')
 
 project_code <- "divittorio_conifer"
 projpath <- "data/divittorio_conifer/"
@@ -225,7 +225,5 @@ spectra_info <- spectra_raw %>%
 spectra_data <- spectra_raw %>%
     left_join(spectra_info %>% select(samplecode, spectratype, spectraid)) %>%
     select(spectraid, wavelength, spectravalue) %>%
-    db_merge_into(db = specdb, table = 'spectra_data', values = .,
-                  by = c('spectraid'), id_colname = 'spectradataid',
-                  return = FALSE, backend = 'psql_copy')
+    write_spectradata
     
