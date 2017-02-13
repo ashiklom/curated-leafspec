@@ -27,7 +27,7 @@ reset:
 	Rscript $<
 
 drop-remote:
-	ssh new-testpecan "psql leaf_spectra -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT SELECT ON ALL TABLES IN SCHEMA public'"
+	ssh new-testpecan "psql leaf_spectra -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT SELECT ON ALL TABLES IN SCHEMA public TO PUBLIC;'"
 
 upload: drop-remote
 	pg_dump -C leaf_spectra | bzip2 | ssh new-testpecan "bunzip2 | psql leaf_spectra"
