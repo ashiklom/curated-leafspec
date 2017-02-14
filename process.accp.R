@@ -175,7 +175,8 @@ specdata <- accp_spec %>%
 traits <- all_samples %>%
     select(samplecode = fullname, starts_with('leaf_'), -leaf_wgt) %>%
     mutate_if(is.numeric, as.numeric) %>%
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait', 
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- traits %>% 
     distinct(trait) %>%

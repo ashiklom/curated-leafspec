@@ -142,7 +142,7 @@ readYang <- function(SampleYear, Site) {
         mutate(leaf_mass_per_area = ud.convert(leaf_mass_per_area,
                                                'g m-2', 'kg m-2')) %>%
         melt(id.vars = 'samplecode', variable.name = 'trait',
-             value.name = 'spectravalue', na.rm = TRUE)
+             value.name = 'traitvalue', na.rm = TRUE)
 
     trait_info <- trait_data %>%
         distinct(trait) %>%

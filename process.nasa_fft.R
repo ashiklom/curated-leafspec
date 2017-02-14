@@ -263,7 +263,7 @@ specmethods <- tribble(
                   id_colname = 'specmethodid') %>%
     setDT()
 
-spectra_info <- left_join(spectra_info_refl, spectra_info_trans) %>%
+spectra_info <- full_join(spectra_info_refl, spectra_info_trans) %>%
     left_join(specmethods %>% select(spectratype, specmethodid)) %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
                   by = c('samplecode', 'spectratype'), id_colname = 'spectraid')

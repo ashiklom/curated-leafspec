@@ -40,8 +40,8 @@ file.rxp <- "an03r(.{4})[.]txt"
 angers.chem <- fread(PATH.chem, header=TRUE) %>%
     setnames('Latin Name', 'speciesdatacode') %>%
     .[, lapply(.SD, replace.na)] %>%
-    .[, c('leaf_chla_area', 'leaf_chlb_area', 'leaf_chltot_area',
-          'leaf_cartot_area', 'leaf_anthocyanin_area') :=
+    .[, c('leaf_chla_per_area', 'leaf_chlb_per_area', 'leaf_chltot_per_area',
+          'leaf_cartot_per_area', 'leaf_anthocyanin_per_area') :=
         lapply(.SD, ud.convert, 'ug cm-2', 'kg m-2'),
         .SDcols = c('C_a', 'C_b', 'C_ab', 'C_car', 'C_anth')] %>%
     .[, leaf_water_thickness := ud.convert(EWT, 'g cm-2', 'kg m-2')] %>%

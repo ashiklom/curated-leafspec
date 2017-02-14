@@ -79,12 +79,12 @@ names_dict <- c("C_C" = "leaf_C_pct_mass",
 
 lopex.traits <- lopex.chem %>%
     rename_(.dots = setNames(names(names_dict), names_dict)) %>%
-    .[, leaf_chla_area := ud.convert(C_a, 'ug cm-2', 'kg m-2')] %>%
-    .[, leaf_chlb_area := ud.convert(C_b, 'ug cm-2', 'kg m-2')] %>%
-    .[, leaf_chltot_area := ud.convert(C_ab, 'ug cm-2', 'kg m-2')] %>%
-    .[, leaf_cartot_area := ud.convert(C_car, 'ug cm-2', 'kg m-2')] %>%
-    .[, leaf_anth_area := ud.convert(C_anth, 'ug cm-2', 'kg m-2')] %>%
-    .[, leaf_mass_per_area := ud.convert(LMA, 'g cm-2', 'kg m-2')] %>%
+    .[, leaf_chla_per_area := ud.convert(C_a, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_chlb_per_area := ud.convert(C_b, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_chltot_per_area := ud.convert(C_ab, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_cartot_per_area := ud.convert(C_car, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_anth_per_area := ud.convert(C_anth, 'ug cm-2', 'kg m-2')] %>%
+    .[, leaf_mass_per_per_area := ud.convert(LMA, 'g cm-2', 'kg m-2')] %>%
     .[, leaf_water_thickness := ud.convert(EWT, 'g cm-2', 'kg m-2')] %>%
     .[, leaf_CN_ratio_mass := leaf_C_pct_mass/leaf_N_pct_mass] %>%
     .[, leaf_protein_pct_mass := 0.5*(C_prot1 + C_prot2)] %>%
@@ -124,7 +124,8 @@ spectra_data <- specdat %>%
 
 traits <- lopex.traits %>%
     select(samplecode, starts_with('leaf_')) %>% 
-    melt(id.vars = 'samplecode', variable.name = 'trait', na.rm = TRUE)
+    melt(id.vars = 'samplecode', variable.name = 'trait',
+         value.name = 'traitvalue', na.rm = TRUE)
 
 trait_info <- traits %>%
     distinct(trait) %>%

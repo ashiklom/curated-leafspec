@@ -69,7 +69,8 @@ sitelatlon <- tribble(
     # NOTE: Approximate coordinates based on Google Maps location of San 
     # Lorenzo Protected Forest;  need more precise ones from Shawn
     'ngee_tropics.PNM', 9.25, -79.99,
-    'ngee_tropics.SanLorenzo', 9.25, -79.99)
+    'ngee_tropics.SanLorenzo', 9.25, -79.99) %>%
+    setDT()
 
 sites <- samples %>%
     distinct(sitecode) %>%

@@ -15,34 +15,46 @@ specdb <- src_sqlite('leaf_spectra.db')
 opts_chunk$set(echo = FALSE, message = FALSE)
 ```
 
-```{r tablesize, echo=FALSE}
-table_counts <- tibble(tablename = src_tbls(specdb),
-                       counts = NA_integer_)
-for (i in seq_len(nrow(table_counts))) {
-    table_counts[i, "counts"] <- tbl(specdb, table_counts[[i, 'tablename']]) %>%
-        count() %>% collect () %>% .[['n']]
-}
-kable(table_counts, caption = 'Number of entries in each table')
-```
+# Summary
 
-```{r projectsize, echo = FALSE}
-project_counts <- tbl(specdb, 'samples') %>%
-    group_by(projectcode) %>%
-    summarize(nsamp = n()) %>%
-    arrange(desc(nsamp)) %>%
-    collect()
-kable(project_counts, caption = 'Number of samples per project')
-```
+## By project
 
 ```{r projectspectra}
 spectra_counts <- tbl(specdb, 'samples') %>%
     inner_join(tbl(specdb, 'spectra_info')) %>%
-    group_by(projectcode, spectratype) %>%
-    summarize(nsamp = n()) %>%
-    arrange(desc(nsamp)) %>%
+    count(projectcode, spectratype, sort = TRUE) %>%
     collect()
 kable(spectra_counts, caption = 'Number of spectra by project and spectra type')
 ```
+
+```{r projectsize, echo = FALSE}
+project_counts <- tbl(specdb, 'samples') %>%
+    count(projectcode, sort = TRUE) %>%
+    collect()
+kable(project_counts, caption = 'Number of samples per project')
+```
+
+```{r spectratraitbyproject, echo = FALSE}
+spectrait <- tbl(specdb, 'samples') %>%
+    inner_join(tbl(specdb, 'spectra_info')) %>%
+    semi_join(tbl(specdb, 'trait_data')) %>%
+    count(projectcode, sort = TRUE) %>%
+    collect
+kable(spectrait, caption = 'Pairwise spectra-trait observations by project')
+```
+
+## By trait
+
+```{r spectatraitbytrait, echo = FALSE}
+bytrait <- tbl(specdb, 'samples') %>%
+    inner_join(tbl(specdb, 'spectra_info')) %>%
+    inner_join(tbl(specdb, 'trait_data')) %>%
+    count(trait, sort = TRUE) %>%
+    collect()
+kable(bytrait, caption = 'Pairwise spectra-trait observations by trait')
+```
+
+## By location
 
 ```{r samplemap, echo = FALSE, fig.cap='Geographic distribution of samples'}
 samples_by_site <- tbl(specdb, 'samples') %>%
@@ -62,28 +74,50 @@ ggplot(samples_by_site) +
     geom_point()
 ```
 
+## By species
+
+```{r species, echo = FALSE, fig.cap = 'Samples by species'}
+samples_by_species <- tbl(specdb, 'samples') %>%
+    count(speciescode, sort = TRUE) %>%
+    left_join(tbl(specdb, 'species')) %>%
+    collect() %>%
+    mutate(speciescode = factor(speciescode, levels = speciescode))
+kable(samples_by_species %>% select(scientificname, n) %>% head(20),
+      caption = 'Top 20 species')
+ggplot(samples_by_species) + 
+    aes(x = speciescode, y = n) +
+    geom_bar(stat = 'identity') +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+# Issues
+
+## Missing latitude/longitude
+
+```{r missingplot, echo = FALSE}
+missing_plots <- tbl(specdb, 'plots') %>%
+    filter(is.na(latitude) | is.na(longitude)) %>%
+    inner_join(tbl(specdb, 'samples')) %>%
+    count(sitecode, sort = TRUE) %>%
+    collect()
+kable(missing_plots, caption = 'Sites with missing coordinates') 
+```
+
+## Missing species
+
 ```{r missingspecies, echo = FALSE}
 missing_species <- tbl(specdb, 'samples') %>%
     filter(is.na(speciescode)) %>%
-    group_by(projectcode) %>%
-    summarize(nsamp = n()) %>%
-    arrange(desc(nsamp)) %>%
+    count(projectcode, sort = TRUE) %>%
     collect()
 kable(missing_species, caption = 'Samples with unidentified species, by project')
 ```
 
-```{r species, echo = FALSE, fig.cap = 'Samples by species'}
-samples_by_species <- tbl(specdb, 'samples') %>%
-    group_by(speciescode) %>%
-    summarize(nsamp = n()) %>%
-    arrange(desc(nsamp)) %>%
-    left_join(tbl(specdb, 'species')) %>%
-    collect() %>%
-    mutate(speciescode = factor(speciescode, levels = speciescode))
-kable(samples_by_species %>% select(scientificname, nsamp) %>% head(20),
-      caption = 'Top 20 species')
-ggplot(samples_by_species) + 
-    aes(x = speciescode, y = nsamp) +
-    geom_bar(stat = 'identity') +
-    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+## Samples with no spectra
+```{r nospecsamples, echo = FALSE}
+missing_spectra <- tbl(specdb, 'samples') %>%
+    anti_join(tbl(specdb, 'spectra_info')) %>%
+    count(projectcode, sort = TRUE) %>%
+    collect
+kable(missing_spectra, caption = 'Samples with no associated spectra, by project')
 ```
