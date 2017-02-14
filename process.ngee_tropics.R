@@ -63,6 +63,14 @@ samples <- chemdat %>%
     #filter(is.na(speciescode), !is.na(speciesdatacode)) %>%
     #distinct(speciesdatacode)
 
+sitelatlon <- tribble(
+    ~sitecode, ~latitude, ~longitude,
+    'ngee_tropics.NA', NA, NA,
+    # NOTE: Approximate coordinates based on Google Maps location of San 
+    # Lorenzo Protected Forest;  need more precise ones from Shawn
+    'ngee_tropics.PNM', 9.25, -79.99,
+    'ngee_tropics.SanLorenzo', 9.25, -79.99)
+
 sites <- samples %>%
     distinct(sitecode) %>%
     db_merge_into(db = specdb, table = 'sites', values = .,
@@ -70,6 +78,7 @@ sites <- samples %>%
 
 plots <- samples %>%
     distinct(sitecode, plotcode) %>%
+    left_join(sitelatlon) %>%
     db_merge_into(db = specdb, table = 'plots', values = .,
                   by = 'plotcode', id_colname = 'plotid')
 
