@@ -27,7 +27,7 @@ reset:
 	Rscript $<
 
 upload:
-	rsync -avz --progress leaf_spectra.db geo:~/dietzelab/prospectinversion/
+	rsync -avz --progress leaf_spectra.db geo:~/dietzelab/curated-leafspec/
 
 report:
 	Rscript -e 'rmarkdown::render("spectra_report.Rmd")'
