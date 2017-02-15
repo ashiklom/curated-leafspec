@@ -1,7 +1,7 @@
 library(specprocess)
 source('common.R')
 project.code <- 'accp'
-accp_path <- 'data/accp'
+accp_path <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/ACCP/accp'
 
 # Load all chemistry data
 traits_path <- file.path(accp_path, "leafchem")

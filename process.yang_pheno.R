@@ -55,7 +55,7 @@ traits <- c('leaf_chla_per_area' = 'Chla',
 ntraits <- length(traits)
 
 readYang <- function(SampleYear, Site) {
-    rootdir <- 'data/yang_pheno'
+    rootdir <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/Yang_etal'
     fname <- sprintf("%s/%d_%s_leaftraits_forShawn.xlsx", 
                      rootdir, SampleYear, Site)
     dat_list <- list()

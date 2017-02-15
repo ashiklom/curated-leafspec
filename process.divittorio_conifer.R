@@ -2,7 +2,7 @@ library(specprocess)
 source('common.R')
 
 project_code <- "divittorio_conifer"
-projpath <- "data/divittorio_conifer/"
+projpath <- "~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/DiVittorio_confier/needle_data_share"
 
 # Get all spec file names
 # Commented-out directories are redundant ones

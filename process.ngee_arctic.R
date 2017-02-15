@@ -3,7 +3,7 @@ library(readxl)
 library(lubridate)
 
 projectcode <- "ngee_arctic"
-path_nga <- "data/ngee_arctic"
+path_nga <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NGEE-Arctic/'
 source('common.R')
 
 scale_wl <- function(., scale_factor = 0.01) {

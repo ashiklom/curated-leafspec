@@ -1,8 +1,7 @@
 library(specprocess)
-library(readxl)
 source('common.R')
 
-datapath <- 'data/wu_brazil'
+datapath <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/Jin_Wu_Brazil_Data'
 
 projects <- tibble(projectcode = 'wu_brazil',
                    projectdescription = 'Wu et al. 2016 New Phytologist Brazil canopy traits study',

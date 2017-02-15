@@ -4,7 +4,7 @@ source('common.R')
 
 project_code <- "ngee_tropics"
 
-path_ngt <- "data/ngee_tropics/"
+path_ngt <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NGEE-Tropics'
 
 namesdict <- c("LWP_bar" = "leaf_water_potential",
                "Species" = "RawSpecies", 

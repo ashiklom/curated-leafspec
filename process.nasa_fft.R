@@ -9,7 +9,7 @@ projectcode <- "nasa_fft"
 source('common.R')
 
 #' Set paths for FFT data
-PATH.FFT <- file.path("data","nasa_fft")
+PATH.FFT <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NASA_FFT_Project'
 
 #' # Process reflectance and transmittance data
 #' Set reflectance data path
