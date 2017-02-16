@@ -102,7 +102,8 @@ all_samples <- accp_spec %>%
 # `species.code` is already the correct USDA code
     .[, sitecode := paste0(projectcode, '.', site_id)] %>%
     .[, plotcode := paste0(sitecode, '.', plot_id)] %>%
-    .[speciescode == 'USNEA', speciescode := 'USNEA2']
+    .[speciescode == 'USNEA', speciescode := 'USNEA2'] %>%
+    .[speciescode == 'POGR', speciescode := 'POSE']
 
 #species <- tbl(specdb, 'species') %>%
     #select(speciescode) %>%
