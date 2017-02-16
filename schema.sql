@@ -100,8 +100,7 @@ CREATE TABLE specmethods(
 CREATE TABLE spectra_info(
     spectraid INTEGER PRIMARY KEY,
     samplecode TEXT NOT NULL REFERENCES samples (samplecode) ON DELETE CASCADE,
-    spectratype TEXT 
-        CHECK (spectratype IN ('reflectance', 'transmittance', 'pseudo-absorbance')),
+    spectratype TEXT,
     specmethodid INTEGER REFERENCES specmethods (specmethodid) ON DELETE CASCADE,
     sampleprep TEXT,
     spectracomment TEXT
