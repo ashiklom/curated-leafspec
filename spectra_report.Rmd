@@ -90,6 +90,33 @@ ggplot(samples_by_species) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
+```{r growthform, echo = FALSE, fig.cap = 'Samples by species: growth form'}
+samples_attr <- tbl(specdb, 'samples') %>%
+    left_join(tbl(specdb, 'species_attributes')) %>%
+    collect()
+ggplot(samples_attr) + 
+    aes(x = growth_form) + 
+    geom_bar()
+```
+
+```{r pstype, echo = FALSE, fig.cap = 'Samples by species: photosynthetic pathway'}
+ggplot(samples_attr) + 
+    aes(x = ps_type) + 
+    geom_bar()
+```
+
+```{r myco_asso, echo = FALSE, fig.cap = 'Samples by species: mycorrhizal association'}
+ggplot(samples_attr) + 
+    aes(x = myco_asso) + 
+    geom_bar()
+```
+
+```{r shade_tolerance, echo = FALSE, fig.cap = 'Samples by species: shade tolerance'}
+ggplot(samples_attr) + 
+    aes(x = shade_tolerance) + 
+    geom_bar()
+```
+
 # Issues
 
 ## Missing latitude/longitude

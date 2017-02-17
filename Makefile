@@ -22,6 +22,7 @@ reset:
 	Rscript 01.projects_table.R
 	Rscript 02.species_table.R
 	Rscript 03.species_dict.R
+	Rscript 04.species_attributes.R
 
 %: process.%.R
 	Rscript $<

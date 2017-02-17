@@ -127,7 +127,7 @@ TSCA,"Tsuga canadensis (L.) Carrière",TSCA,USDA_Plants,ACCP,NA,NA
 TYLA,"Typha latifolia L.",TYLA,USDA_Plants,ACCP,NA,NA
 ULAM,"Ulmus americana L.",ULAM,USDA_Plants,ACCP,NA,NA
 "Calicarpa bodinieri","Callicarpa bodinieri H.Lév.",kew-30688,ThePlantList,ANGERS,NA,NA
-"Cornus alba 'Elegantissima'","Cornus alba L.",kew-47268,ThePlantList,ANGERS,NA,NA
+"Cornus alba 'Elegantissima'","Cornus alba L.",COSES,USDA_Plants,ANGERS,NA,NA
 "Rhododendron calophytum","Rhododendron calophytum Franch.",tro-50060048,ThePlantList,ANGERS,NA,NA
 "Schefflera arboricola 'Gold Capella'","Schefflera arboricola (Hayata) Merr.",SCAR10,USDA_Plants,ANGERS,NA,NA
 "Acer negundo 'Variegatum'","Acer negundo L.",ACNE2,USDA_Plants,ANGERS,NA,NA
@@ -229,11 +229,11 @@ VAVI,"Vaccinium vitis-idaea L.",VAVI,USDA_Plants,ngee_arctic,NA,NA
 SARO2,"Salix rotundifolia Trautv.",SARO2,USDA_Plants,ngee_arctic,NA,NA
 POAR2,"Poa arctica R. Br.",POAR2,USDA_Plants,ngee_arctic,NA,NA
 LUAR9,"Luzula arctica Blytt",LUAR9,USDA_Plants,ngee_arctic,NA,NA
-SAPU6,"Saxifraga punctata L.",tro-29100182,ThePlantList,ngee_arctic,NA,NA
+SAPU6,"Saxifraga punctata L.",SANEN,USDA_Plants,ngee_arctic,NA,NA
 POHY4,"Potentilla hyparctica Malte",PONA6,USDA_Plants,ngee_arctic,NA,NA
 ALNFRU,"Alnus alnobetula subsp. fruticosa (Rupr.) Raus",ALVIS,USDA_Plants,ngee_arctic,NA,NA
 BETGLA,"Betula nana L. subsp. exilis",BENAE,USDA_Plants,ngee_arctic,NA,NA
-SALGLA,"Salix glauca var. acutifolia (Hook.) C.K.Schneid.",kew-5003760,ThePlantList,ngee_arctic,NA,NA
+SALGLA,"Salix glauca var. acutifolia (Hook.) C.K.Schneid.",SAGL,USDA_Plants,ngee_arctic,NA,NA
 CASTEL,"Castilla elastica Sessé",CAEL5,USDA_Plants,ngee_tropics,"Castilla elastica",NA
 LUEHSE,"Luehea seemannii Triana & Planch",kew-2496835,ThePlantList,ngee_tropics,"Luehea seemannii",NA
 ANACEX,"Anacardium excelsum (Bertero ex Kunth) Skeels",kew-2635897,ThePlantList,ngee_tropics,"Anacardium excelsum",NA
