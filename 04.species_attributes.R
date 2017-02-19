@@ -3,10 +3,10 @@ source('common.R')
 
 attribute_path <- 'data/common/attributes.csv'
 
-DBI::dbSendQuery(specdb$con, 'DROP TABLE species_attributes')
 
 if ('species_attributes' %in% DBI::dbListTables(specdb$con)) {
-    message('Species attributes table already exists. Skipping')
+    message('Species attributes table already exists. Dropping table...')
+    DBI::dbSendQuery(specdb$con, 'DROP TABLE species_attributes')
 } else {
     speciesatt <- read_csv(attribute_path) %>%
         mutate(myco_asso = recode(myco_asso, 
