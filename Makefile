@@ -1,4 +1,4 @@
-DATA:= accp lopex angers divittorio_conifer nasa_fft ngee_arctic ngee_tropics yang_pheno nasa_hyspiri foster_beetle
+DATA:= accp lopex angers divittorio_conifer nasa_fft ngee_arctic ngee_tropics yang_pheno nasa_hyspiri foster_beetle wu_brazil
 #TARGETS := $(DATA:%=processed-spec-data/%.rds)
 
 .PHONY: all clean reset
