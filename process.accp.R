@@ -1,7 +1,15 @@
 library(specprocess)
 source('common.R')
-project.code <- 'accp'
+
 accp_path <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/ACCP/accp'
+
+project_table <- tibble(
+    projectcode = 'accp',
+    projectshortname = 'ACCP',
+    projectdescription = 'Accelerated Canopy Chemistry Program') %>% 
+    write_project()
+
+project.code <- project_table$projectcode
 
 # Load all chemistry data
 traits_path <- file.path(accp_path, "leafchem")
@@ -100,8 +108,8 @@ all_samples <- accp_spec %>%
     .[, projectcode := project.code] %>%
     .[, fullname := paste(project.code, samplename, year, sep = '|')] %>%
 # `species.code` is already the correct USDA code
-    .[, sitecode := paste0(projectcode, '.', site_id)] %>%
-    .[, plotcode := paste0(sitecode, '.', plot_id)] %>%
+    .[, sitecode := site_id] %>%
+    .[, plotcode := paste(sitecode, plot_id, sep = '.')] %>%
     .[speciescode == 'USNEA', speciescode := 'USNEA2'] %>%
     .[speciescode == 'POGR', speciescode := 'POSE']
 
@@ -114,54 +122,51 @@ all_samples <- accp_spec %>%
 ## Create sites table
 accp_site_info <- tribble(
     ~sitecode, ~sitedescription, ~latitude, ~longitude, ~site_merge_tag,
-    'accp.HF', 'Harvard Forest, Petersham, MA', 42.4950, -71.7981, 'leaf',
-    'accp.BHI', 'Blackhawk Island, WI', 43.6333, -89.7583, 'leaf',
-    'accp.HOW', 'Howland, ME', 45.2222, -68.7356, 'leaf',
-    'accp.GAIN', 'Gainesville, FL', 29.7000, -82.1667, 'leaf',
-    'accp.JR', 'Jasper Ridge, CA', 37.4111, -121.7631, 'leaf',
-    'accp.RICE', 'Dunnigan and Pleasant Grove, CA', mean(c(38.9167, 38.7292)), mean(c(-120.1122, -120.4581)), 'leaf') %>%
+    'HF', 'Harvard Forest, Petersham, MA', 42.4950, -71.7981, 'leaf',
+    'BHI', 'Blackhawk Island, WI', 43.6333, -89.7583, 'leaf',
+    'HOW', 'Howland, ME', 45.2222, -68.7356, 'leaf',
+    'GAIN', 'Gainesville, FL', 29.7000, -82.1667, 'leaf',
+    'JR', 'Jasper Ridge, CA', 37.4111, -121.7631, 'leaf',
+    'RICE', 'Dunnigan and Pleasant Grove, CA', mean(c(38.9167, 38.7292)), mean(c(-120.1122, -120.4581)), 'leaf') %>%
     setDT()
 
 site <- all_samples %>% 
-    distinct(sitecode) %>%
-    left_join(accp_site_info)
-site_merge <- db_merge_into(db = specdb, table = 'sites', values = site,
-                            by = c('sitecode', 'sitedescription'), id_colname = 'siteid')
+    distinct(projectcode, sitecode) %>%
+    left_join(accp_site_info) %>%
+    write_sites()
 
 # Create plots table
 accp_plots <- all_samples %>%
     distinct(plotcode, sitecode) %>%
-    left_join(accp_site_info)
-plot_merge <- db_merge_into(db = specdb, table = 'plots', values = accp_plots,
-                            by = c('plotcode', 'sitecode'), id_colname = 'plotid')
+    left_join(accp_site_info) %>% 
+    write_plots()
 
 # Samples table
 samples <- all_samples %>%
     distinct(fullname, projectcode, year, collectiondate,
              plotcode, speciescode) %>%
-    rename(samplecode = fullname)
-samples_merge <- db_merge_into(db = specdb, table = 'samples', values = samples,
-                     by = c('samplecode'), id_colname = 'sampleid')
+    rename(samplecode = fullname) %>% 
+    db_merge_into(db = specdb, table = 'samples', values = .,
+                  by = 'samplecode', id_colname = NULL)
 
 # Instrument
 specmethods <- tribble(
-    ~instrumentname, ~specmethodcomment, ~site_merge_tag,
-    'NIRS 6500 laboratory spectrometer', 'ACCP measurement of wet and dry leaves', 'leaf',
-    'ACCP field spectrometer', 'ACCP measurement of seedlings in field', 'seedling') %>%
+    ~instrumentcode, ~specmethodcode, ~instrumentname, ~specmethodcomment, ~site_merge_tag,
+    'nirs-6500', 'accp-leaf', 'NIRS 6500 laboratory spectrometer', 'ACCP measurement of wet and dry leaves', 'leaf',
+    'accp-spec', 'accp-seedling', 'ACCP field spectrometer', 'ACCP measurement of seedlings in field', 'seedling') %>%
     db_merge_into(db = specdb, table = 'instruments', values = .,
-                  by = 'instrumentname', id_colname = 'instrumentid') %>%
+                  by = 'instrumentcode') %>%
     db_merge_into(db = specdb, table = 'specmethods', values = .,
-                  by = c('instrumentid', 'specmethodcomment'), 
-                  id_colname = 'specmethodid') %>%
+                  by = c('instrumentcode', 'specmethodcode')) %>%
     left_join(accp_site_info)
 
 # Spec_info table
 specinfo <- all_samples %>%
     filter(!is.na(fname)) %>%
     left_join(setDT(specmethods)) %>%
-    select(samplecode=fullname, spectratype, sampleprep, specmethodid) %>%
+    select(samplecode = fullname, spectratype, sampleprep, specmethodcode) %>%
     db_merge_into(db = specdb, table = 'spectra_info',
-                  values = ., by = 'samplecode', 
+                  values = ., by = c('samplecode', 'specmethodcode'),
                   id_colname = 'spectraid')
 
 # Spectra table
@@ -184,8 +189,7 @@ trait_info <- traits %>%
     .[grepl('_pct', trait), unit := '%'] %>%
     .[trait == 'leaf_water_thickness', unit := 'kg m-2'] %>%
     db_merge_into(db = specdb, table = 'trait_info',
-                  values = ., by = 'trait', id_colname = 'traitid')
+                  values = ., by = 'trait')
 
 traits <- db_merge_into(db = specdb, table = 'trait_data',
-                        values = traits, by = 'samplecode', 
-                        id_colname = 'traitdataid')
+                        values = traits, by = 'samplecode')
