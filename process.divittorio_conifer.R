@@ -2,6 +2,17 @@ library(specprocess)
 source('common.R')
 
 project_code <- "divittorio_conifer"
+project_table <- tibble(
+    projectcode = project_code,
+    projectshortname = 'Di Vittorio & Biging 2009 IJRS',
+    projectdescription = paste('Di Vittorio & Biging 2009.',
+                               'Spectral identification of ozone-damaged pine needles.',
+                               'International Journal of Remote Sensing'),
+    doi = '10.1080/01431160802558725',
+    pointofcontact = 'Di Vittorio, Alan',
+    email = 'avdivittorio@lbl.gov') %>% 
+    write_project()
+
 projpath <- "~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/DiVittorio_confier/needle_data_share"
 
 # Get all spec file names
@@ -139,7 +150,7 @@ glimpse(alldat)
 sites <- alldat %>%
     distinct(sitecode, sitedescription) %>%
     db_merge_into(db = specdb, table = 'sites', values = .,
-                  by = c('sitecode', 'sitedescription'), id_colname = 'siteid')
+                  by = c('projectcode', 'sitecode', 'sitedescription'))
 
 plots <- tribble(
     ~sitedescription, ~latitude, ~longitude,
@@ -150,13 +161,12 @@ plots <- tribble(
     mutate(plotcode = sitecode,
            plotdescription = sitedescription) %>%
     db_merge_into(db = specdb, table = 'plots', values = ., 
-                  by = c('plotcode', 'plotdescription'), id_colname = 'plotid')
+                  by = c('sitecode', 'plotcode', 'plotdescription'))
 
 samples <- alldat %>%
     select(samplecode, speciescode, sitecode, plotcode,
            projectcode, year) %>%
-    db_merge_into(db = specdb, table = 'samples', values = .,
-                  by = 'samplecode', id_colname = 'sampleid')
+    db_merge_into(db = specdb, table = 'samples', values = ., by = 'samplecode')
     
 sample_condition <- alldat %>%
     select(samplecode, dv_needle_condition) %>%
@@ -169,12 +179,10 @@ sample_condition_info <- sample_condition %>%
                                         '"green" indicates healthy needles.', 
                                         'See "Di Vittorio 2009 J. Environ. Qual."',
                                         'for more info.')) %>%
-    db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
-                  by = 'condition', id_colname = 'conditionid')
+    db_merge_into(db = specdb, table = 'sample_condition_info', values = ., by = 'condition')
 
 sample_condition <- db_merge_into(db = specdb, table = 'sample_condition', 
-                                  values = sample_condition,
-                                  by = 'samplecode', id_colname = 'conditiondataid')
+                                  values = sample_condition, by = 'samplecode')
 
 trait_data <- alldat %>%
     select(samplecode, starts_with('leaf_')) %>%
@@ -184,12 +192,10 @@ trait_data <- alldat %>%
 trait_info <- trait_data %>%
     distinct(trait) %>%
     mutate(unit = 'kg m-2') %>%
-    db_merge_into(db = specdb, table = 'trait_info', values = .,
-                  by = 'trait', id_colname = 'traitid')
+    db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
 
 trait_data <- db_merge_into(db = specdb, table = 'trait_data', 
-                            values = trait_data, by = 'samplecode', 
-                            id_colname = 'traitdataid')
+                            values = trait_data, by = 'samplecode')
 
 # Load spectra as a list
 spec_list <- list()

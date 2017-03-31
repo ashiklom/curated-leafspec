@@ -10,7 +10,8 @@ projectcode <- 'angers'
 
 project_table <- tibble(
     projectcode = projectcode,
-    description = 'Angers, France spectra from INRA',
+    projectshortname = 'ANGERS',
+    projectdescription = 'Angers, France spectra from INRA',
     doi = '10.1016/j.rse.2008.02.012',
     pointofcontact = 'Feret, Jean-Baptiste',
     email = 'feretjb@cesbio.cnes.fr') %>% 
