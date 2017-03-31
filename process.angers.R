@@ -8,26 +8,25 @@ library(specprocess)
 source('common.R')
 projectcode <- 'angers'
 
-#projects <- data.table(
-    #projectcode = 'angers',
-    #description = 'Angers, France spectra from INRA',
-    #doi = '10.1016/j.rse.2008.02.012',
-    #pointofcontact = 'Feret, Jean-Baptiste',
-    #email = 'feretjb@cesbio.cnes.fr')
-#merge_with_sql(projects, 'projects')
+project_table <- tibble(
+    projectcode = projectcode,
+    description = 'Angers, France spectra from INRA',
+    doi = '10.1016/j.rse.2008.02.012',
+    pointofcontact = 'Feret, Jean-Baptiste',
+    email = 'feretjb@cesbio.cnes.fr') %>% 
+    write_project()
 
 
 site_plot <- tibble(
-    sitecode = 'angers.INRA',
+    projectcode = projectcode,
+    sitecode = 'INRA',
     sitedescription = 'INRA Centra in Angers, France',
     latitude = 47.47,
     longitude = -0.56) %>%
     mutate(plotcode = sitecode,
            plotdescription = sitedescription) %>%
-    db_merge_into(db = specdb, table = 'sites', values = ., 
-                  by = 'sitecode', id_colname = 'siteid') %>%
-    db_merge_into(db = specdb, table = 'plots', values = ., 
-                  by = 'plotcode', id_colname = 'plotid')
+    write_sites %>% 
+    write_plots
 
 #' Set paths
 PATH.ANGERS <- file.path("data", "angers")
@@ -82,17 +81,14 @@ specdat <- rbind(rbindlist(refl_list), rbindlist(trans_list))
 
 spec_samples <- specdat %>% distinct(samplecode)
 
+species_dict <- fread('data/angers/angers_species_dict.csv')
+
 chem_samples <- angers.chem %>%
     distinct(samplecode, projectcode, year, sitecode, plotcode, speciesdatacode) %>%
-    left_join(tbl(specdb, 'species_dict') %>% 
-              select(-speciesdictid, -speciesdictcomment) %>% 
-              collect %>% 
-              setDT) %>%
-    select(-speciesdatacode)
+    left_join(species_dict)
 
 samples <- full_join(spec_samples, chem_samples) %>%
-    db_merge_into(db = specdb, table = 'samples', values = ., 
-                  by = 'samplecode', id_colname = 'sampleid')
+    db_merge_into(db = specdb, table = 'samples', values = ., by = 'samplecode')
 
 spectra_info <- specdat %>% 
     distinct(samplecode, spectratype) %>%
@@ -113,8 +109,6 @@ trait_info <- traits %>%
     .[grepl('_pct', trait), unit := '%'] %>%
     .[grepl('_area|_thickness', trait), unit := 'kg m-2'] %>%
     .[grepl('ratio', trait), unit := 'unitless'] %>%
-    db_merge_into(db = specdb, table = 'trait_info', values = ., 
-                  by = 'trait', id_colname = 'traitid')
+    db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
 
-trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = traits, 
-                  by = 'samplecode', id_colname = 'traitdataid')
+trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = traits, by = 'samplecode')

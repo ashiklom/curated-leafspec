@@ -1,4 +1,4 @@
-RawSpecies,ScientificName,SpeciesCode,Database_ID,Project,old_scientific,SpeciesScientific
+speciesdatacode,ScientificName,speciescode,Database_ID,projectcode,old_scientific,SpeciesScientific
 UNKN1,NA,NA,NA,NASA_FFT,NA,NA
 ABBA,"Abies balsamea (L.) Mill.",ABBA,USDA_Plants,NASA_FFT,NA,NA
 ACNE,"Acer negundo L.",ACNE2,USDA_Plants,NASA_FFT,NA,NA
