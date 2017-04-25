@@ -151,11 +151,9 @@ samples <- all_samples %>%
 
 # Instrument
 specmethods <- tribble(
-    ~instrumentcode, ~specmethodcode, ~instrumentname, ~specmethodcomment, ~site_merge_tag,
-    'nirs-6500', 'accp-leaf', 'NIRS 6500 laboratory spectrometer', 'ACCP measurement of wet and dry leaves', 'leaf',
-    'accp-spec', 'accp-seedling', 'ACCP field spectrometer', 'ACCP measurement of seedlings in field', 'seedling') %>%
-    db_merge_into(db = specdb, table = 'instruments', values = .,
-                  by = 'instrumentcode') %>%
+    ~instrumentcode, ~specmethodcode, ~specmethodcomment, ~site_merge_tag,
+    'nirs-6500', 'accp-leaf', 'ACCP measurement of wet and dry leaves', 'leaf',
+    'accp-spec', 'accp-seedling', 'ACCP measurement of seedlings in field', 'seedling') %>%
     db_merge_into(db = specdb, table = 'specmethods', values = .,
                   by = c('instrumentcode', 'specmethodcode')) %>%
     left_join(accp_site_info)

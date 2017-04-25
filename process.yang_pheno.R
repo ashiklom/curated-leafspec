@@ -3,16 +3,19 @@ library(readxl)
 library(lubridate)
 source('common.R')
 
+DBI::dbGetQuery(specdb$con, 'DELETE FROM projects WHERE projectcode = "yang_pheno"')
+
 #' Projects table
-project_code <- "yang_pheno"
+projects <- tibble(
+    projectcode = 'yang_pheno',
+    projectshortname = 'Yang et al. 2016 RSE',
+    projectdescription = 'Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests',
+    pointofcontact = 'Yang, Xi',
+    email = 'xi_yang@brown.edu',
+    doi = '10.1016/j.rse.2016.03.026') %>% 
+    write_project()
 
-#projectname <- "Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests"
-
-#projectreference <- "Yang, X., Tang, J., Mustard, J.F., Wu, J., Zhao, K., Serbin, S., Lee, J.-E., 2016. Seasonal variability of multiple leaf traits captured by leaf spectroscopy at two temperate deciduous forests. Remote Sensing of Environment 179, 1–12."
-
-#project_doi <- '10.1016/j.rse.2016.03.026'
-
-# MV (Martha's Vineyard) -- 41.362, -70.578
+# MV_MA (Martha's Vineyard) -- 41.362, -70.578
 # A,B,C indicate three individuals
 # U,L mean upper and lower
 # N,S mean leaves were on the north and south part of the canopy
@@ -22,21 +25,20 @@ project_code <- "yang_pheno"
 ##' Sites table
 sites <- tribble(
     ~sitecode, ~description,
-    'yang_pheno.MV', "Martha\'s Vineyard, MA, USA",
-    'yang_pheno.HF', "Harvard Forest, Petersham, MA, USA") %>%
-    db_merge_into(db = specdb, table = 'sites', values = .,
-                  by = 'sitecode', id_colname = 'siteid')
+    'MV_MA', "Martha\'s Vineyard, MA, USA",
+    'HF_MA', "Harvard Forest, Petersham, MA, USA") %>%
+    mutate(projectcode = projects$projectcode) %>% 
+    write_sites()
 
 plots <- tribble(
     ~sitecode, ~latitude, ~longitude,
-    'yang_pheno.MV', 41.362, -70.578,
-    'yang_pheno.HF', 42.531, -72.190) %>%
+    'MV_MA', 41.362, -70.578,
+    'HF_MA', 42.531, -72.190) %>%
     left_join(sites) %>%
     mutate(plotcode = sitecode) %>%
-    db_merge_into(db = specdb, table = 'plots', values = .,
-                  by = 'plotcode', id_colname = 'plotid')
+    write_plots()
 
-# HF
+# HF_MA
 # RO -- Red Oak
 # RM -- Red maple
 # YB -- Yellow Birch
@@ -57,11 +59,11 @@ ntraits <- length(traits)
 readYang <- function(SampleYear, Site) {
     rootdir <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/Yang_etal'
     fname <- sprintf("%s/%d_%s_leaftraits_forShawn.xlsx", 
-                     rootdir, SampleYear, Site)
+                     rootdir, SampleYear, gsub('_MA', '', Site))
     dat_list <- list()
     SampleNames <- character()
-    is_MV <- SampleYear == 2011 & Site == "MV"
-    is_HF <- SampleYear == 2012 & Site == "HF"
+    is_MV <- SampleYear == 2011 & Site == "MV_MA"
+    is_HF <- SampleYear == 2012 & Site == "HF_MA"
     
     # Load trait data
     for (i in seq_along(traits)){
@@ -82,9 +84,9 @@ readYang <- function(SampleYear, Site) {
              variable.name = 'barcode',
              value.name = 'traitvalue') %>%
         dcast(DOY + barcode ~ trait) %>%
-        mutate(projectcode = project_code,
+        mutate(projectcode = projects$projectcode,
                year = SampleYear,
-               sitecode = paste(projectcode, Site, sep = '.'),
+               sitecode = Site,
                plotcode = sitecode,
                samplecode = paste(projectcode, 
                                   paste(barcode, DOY, sep = '_'),
@@ -116,24 +118,17 @@ readYang <- function(SampleYear, Site) {
         distinct(samplecode, projectcode, sitecode, plotcode, speciesdatacode, DOY, year) %>%
         mutate(collectiondate = as.Date(paste(year, DOY, sep = '_'),
                                         '%Y_%j')) %>%
-        left_join(tbl(specdb, 'species_dict') %>%
-                  filter(projectcode == project_code) %>%
-                  select(speciesdatacode, speciescode) %>%
-                  collect() %>%
-                  setDT()) %>%
+        left_join(read_csv('data/yang_pheno/yang_pheno_species_dict.csv') %>% setDT()) %>% 
         select(-speciesdatacode) %>%
-        db_merge_into(db = specdb, table = 'samples', values = .,
-                    by = 'samplecode', id_colname = 'sampleid')
+        db_merge_into(db = specdb, table = 'samples', values = ., by = 'samplecode')
 
     sample_condition <- dat_trait %>%
         distinct(samplecode, sunshade) %>%
-        melt(id.vars = 'samplecode', variable.name = 'condition',
-             value.name = 'conditionvalue')
+        melt(id.vars = 'samplecode', variable.name = 'condition', value.name = 'conditionvalue')
     sample_condition_info <- distinct(sample_condition, condition) %>%
-        db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
-                    by = 'condition', id_colname = 'conditionid')
+        db_merge_into(db = specdb, table = 'sample_condition_info', values = ., by = 'condition')
     sample_condition <- db_merge_into(db = specdb, table = 'sample_condition', values = sample_condition,
-                                      by = 'samplecode', id_colname = 'conditiondataid')
+                                      by = 'samplecode')
 
     trait_data <- dat_trait %>%
         select(samplecode, starts_with('leaf_')) %>%
@@ -149,11 +144,10 @@ readYang <- function(SampleYear, Site) {
         mutate(unit = case_when(grepl('_pct_mass', .$trait) ~ '%',
                                 grepl('_per_area', .$trait) ~ 'kg m-2',
                                 TRUE ~ NA_character_)) %>%
-        db_merge_into(db = specdb, table = 'trait_info', values = .,
-                    by = 'trait', id_colname = 'traitid')
+        db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
 
     trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = trait_data,
-                                by = c('samplecode', 'trait'), id_colname = 'traitdataid')
+                                by = c('samplecode', 'trait'))
 
     # Load spectral data
     getSpec <- function(fname) {
@@ -211,6 +205,6 @@ readYang <- function(SampleYear, Site) {
 }
 
 ##options(error = recover)
-yang_mv <- readYang(2011, "MV")
-yang_hf <- readYang(2012, "HF")
+yang_mv <- readYang(2011, "MV_MA")
+yang_hf <- readYang(2012, "HF_MA")
 

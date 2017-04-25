@@ -1,0 +1,9 @@
+instrumentcode, instrumentname, minwavelength, maxwavelength, instrumentcomment
+asd-fspro, ASD FieldSpec Pro, 350, 2500, "1.4nm visible; 2.2nm NIR; 2.3nm SWIR; interpolated to 1nm; Analytical Spectra Devices Boulder CO USA"
+asd-fs3, ASD FieldSpec 3, , ,
+asd-fs4, ASD FieldSpec 4, , ,
+se-psm3500, Spectral Evolution PSM-3500, , , 
+perkin-elmer-l19,"Perkin Elmer Lambda 19 double-beam spectrophotometer (BaSO4 integrating sphere)", , ,
+nirs-6500,"NIRS 6500 laboratory spectrometer", , , 
+accp-spec,"ACCP field spectrometer (unknown model)", , ,
+svc-hr-1024i,"SVC_HR-1024i", , ,

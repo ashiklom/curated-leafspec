@@ -2,7 +2,15 @@ library(specprocess)
 library(readxl)
 source('common.R')
 
-project_code <- "ngee_tropics"
+dbGetQuery(specdb$con, 'DELETE FROM projects WHERE projectcode = "ngee_tropics"')
+
+projects <- tibble(
+    projectcode = 'ngee_tropics',
+    projectshortname = 'NGEE-Tropics',
+    projectdescription = 'Next Generation Ecosystem Experiments (NGEE) - Tropics',
+    pointofcontact = 'Serbin, Shawn',
+    email = 'serbinsh@bnl.gov') %>% 
+    write_project()
 
 path_ngt <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NGEE-Tropics'
 
@@ -33,7 +41,7 @@ spectra_raw <- read_excel(specfile) %>%
     setDT() %>%
     filter(!(Spectra == "BNL11815" & Site == "PNM")) %>%
     mutate(collectiondate = as.Date(strptime(Date, '%Y%m%d')),
-            sitecode = paste(project_code, Site, sep = '.')) %>%
+            sitecode = paste(projects[['projectcode']], Site, sep = '.')) %>%
     select(SampleName = Spectra, sitecode, collectiondate,
             Instrument, starts_with('Wave_'))
 
@@ -47,17 +55,10 @@ samples <- chemdat %>%
     select(-canopyposition, -starts_with('leaf_')) %>%
     full_join(select(spectra_raw, -starts_with('Wave_'), -Instrument)) %>%
     mutate(year = SampleYear,
-           projectcode = project_code,
+           projectcode = projects$projectcode,
            samplecode = paste(projectcode, SampleName, year, sep = '|'),
-           sitecode = if_else(is.na(sitecode),
-                              paste(projectcode, sitecode, sep = '.'),
-                              sitecode),
            plotcode = sitecode) %>%
-    left_join(tbl(specdb, 'species_dict') %>% 
-              filter(projectcode == project_code) %>% 
-              select(speciesdatacode, speciescode) %>%
-              collect() %>%
-              setDT())
+    left_join(read_csv('data/ngee_tropics/ngee_tropics_species_dict.csv') %>% setDT())
 
 #samples %>%
     #filter(is.na(speciescode), !is.na(speciesdatacode)) %>%
@@ -65,32 +66,28 @@ samples <- chemdat %>%
 
 sitelatlon <- tribble(
     ~sitecode, ~latitude, ~longitude,
-    'ngee_tropics.NA', NA, NA,
+    'NA', NA, NA,
     # NOTE: Approximate coordinates based on Google Maps location of San 
     # Lorenzo Protected Forest;  need more precise ones from Shawn
-    'ngee_tropics.PNM', 9.25, -79.99,
-    'ngee_tropics.SanLorenzo', 9.25, -79.99) %>%
+    'PNM', 9.25, -79.99,
+    'SanLorenzo', 9.25, -79.99) %>%
     setDT()
 
 sites <- samples %>%
-    distinct(sitecode) %>%
-    db_merge_into(db = specdb, table = 'sites', values = .,
-                  by = 'sitecode', id_colname = 'siteid')
+    distinct(projectcode, sitecode) %>%
+    write_sites()
 
 plots <- samples %>%
     distinct(sitecode, plotcode) %>%
     left_join(sitelatlon) %>%
-    db_merge_into(db = specdb, table = 'plots', values = .,
-                  by = 'plotcode', id_colname = 'plotid')
+    write_plots()
 
-samples <- db_merge_into(db = specdb, table = 'samples', values = samples,
-                            by = 'samplecode', id_colname = 'sampleid')
+samples <- db_merge_into(db = specdb, table = 'samples', values = samples, by = 'samplecode')
 
 sample_condition_info <- tibble(
     condition = 'sunshade',
     conditiondescription = 'Whether leaf is sunlit (sun; same as canopyposition "top") or shaded (shade; same as canopyposition "mid" or "bot")') %>%
-    db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
-                  by = c('condition', 'conditiondescription'), id_colname = 'conditionid')
+    db_merge_into(db = specdb, table = 'sample_condition_info', values = ., by = 'condition')
 
 sample_condition <- chemdat %>%
     distinct(SampleName, canopyposition) %>%
@@ -103,7 +100,7 @@ sample_condition <- chemdat %>%
     left_join(select(samples, SampleName, samplecode)) %>%
     select(-SampleName) %>%
     db_merge_into(db = specdb, table = 'sample_condition', values = .,
-                  by = c('samplecode', 'condition'), id_colname = 'conditiondataid')
+                  by = c('samplecode', 'condition'))
 
 trait_data <- chemdat %>%
     left_join(select(samples, samplecode, SampleName)) %>%
@@ -115,29 +112,21 @@ trait_info <- trait_data %>%
     distinct(trait) %>%
     mutate(unit = case_when(trait == 'leaf_water_potential' ~ 'Pa', 
                             TRUE ~ NA_character_)) %>%
-    db_merge_into(db = specdb, table = 'trait_info', values = .,
-                  by = 'trait', id_colname = 'traitid')
+    db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
 
 trait_data <- db_merge_into(db = specdb, table = 'trait_data', values = trait_data,
-                            by = c('samplecode', 'trait'), id_colname = 'traitdataid')
-
-instruments <- spectra_raw %>%
-    distinct(Instrument) %>%
-    rename(instrumentname = Instrument) %>%
-    db_merge_into(db = specdb, table = 'instruments', values = .,
-                  by = 'instrumentname', id_colname = 'instrumentid')
+                            by = c('samplecode', 'trait'))
 
 # TODO: Add more methods information
-specmethods <- instruments %>%
-    mutate(specmethodcomment = 'NGEE Tropics') %>%
-    db_merge_into(db = specdb, table = 'specmethods', values = .,
-                  by = c('instrumentid', 'specmethodcomment'),
-                  id_colname = 'specmethodid')
+specmethods <- tibble(instrumentcode = 'svc-hr-1024i',
+                      specmethodcode = 'ngee_tropics-method') %>% 
+    db_merge_into(db = specdb, table = 'specmethods', values = ., by = 'specmethodcode')
 
 spectra_info <- spectra_raw %>%
-    select(SampleName, instrumentname = Instrument) %>%
+    select(SampleName) %>% 
+    mutate(instrumentcode = specmethods[['instrumentcode']]) %>%
     left_join(select(samples, samplecode, SampleName)) %>%
-    left_join(specmethods) %>%
+    left_join(specmethods %>% setDT()) %>%
     mutate(spectratype = 'reflectance') %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
                   by = c('samplecode', 'spectratype'), id_colname = 'spectraid')

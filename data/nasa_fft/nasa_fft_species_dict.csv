@@ -1,0 +1,69 @@
+speciesdatacode,speciescode,scientific_name,Database_ID
+UNKN1,NA,NA,NA
+ABBA,ABBA,Abies balsamea (L.) Mill.,USDA_Plants
+ACNE,ACNE2,Acer negundo L.,USDA_Plants
+ACPL,ACPL,Acer platanoides L.,USDA_Plants
+ACRU,ACRU,Acer rubrum L.,USDA_Plants
+ACSN,ACSA2,Acer saccharinum L.,USDA_Plants
+ACSM,ACSA3,Acer saccharum Marsh.,USDA_Plants
+ACSP,ACSP2,Acer spicatum Lam.,USDA_Plants
+ALIN,ALIN2,Alnus incana (L.) Moench,USDA_Plants
+ANGE,ANGE,Andropogon gerardii Vitman,USDA_Plants
+BEAL,BEAL2,Betula alleghaniensis Britton,USDA_Plants
+BEGL,BEGL,Betula glandulosa Michx.,USDA_Plants
+BELE,BELE,Betula lenta L.,USDA_Plants
+BEPA,BEPA,Betula papyrifera Marsh.,USDA_Plants
+CAREX,CAREX,Carex L.,USDA_Plants
+CAAL,CATO6,Carya alba (L.) Nutt.,USDA_Plants
+CAOV,CAOV2,Carya ovata (Mill.) K. Koch,USDA_Plants
+CEOC,CEOC,Celtis occidentalis L.,USDA_Plants
+CHCA,CHCA2,Chamaedaphne calyculata (L.) Moench,USDA_Plants
+COFL,COFL2,Cornus florida L.,USDA_Plants
+COAM,COAM3,Corylus americana Walter,USDA_Plants
+FAGR,FAGR,Fagus grandifolia Ehrh.,USDA_Plants
+FRAM,FRAM2,Fraxinus americana L.,USDA_Plants
+FRNI,FRNI,Fraxinus nigra Marsh.,USDA_Plants
+FRPE,FRPE,Fraxinus pennsylvanica Marsh.,USDA_Plants
+JUNI,JUNI,Juglans nigra L.,USDA_Plants
+JUVI,JUVI,Juniperus virginiana L.,USDA_Plants
+LALA,LALA,Larix laricina (Du Roi) K. Koch,USDA_Plants
+LEGR,LEGR,Ledum groenlandicum Oeder,USDA_Plants
+LITU,LITU,Liriodendron tulipifera L.,USDA_Plants
+MAAC,MAAC,Magnolia acuminata (L.) L.,USDA_Plants
+NYSY,NYSY,Nyssa sylvatica Marsh.,USDA_Plants
+OSVI,OSVI,Ostrya virginiana (Mill.) K. Koch,USDA_Plants
+PIMA,PIMA,"Picea mariana (Mill.) Britton, Sterns & Poggenb.",USDA_Plants
+PIRU,PIRU,Picea rubens Sarg.,USDA_Plants
+PIBA,PIBA2,Pinus banksiana Lamb.,USDA_Plants
+PIPU,PIPU5,Pinus pungens Lamb.,USDA_Plants
+PIRE,PIRE,Pinus resinosa Aiton,USDA_Plants
+PIST,PIST,Pinus strobus L.,USDA_Plants
+PISY,PISY,Pinus sylvestris L.,USDA_Plants
+PIVI,PIVI2,Pinus virginiana Mill.,USDA_Plants
+PODE,PODE3,Populus deltoides Bartram ex Marsh.,USDA_Plants
+POGR,POGR4,Populus grandidentata Michx.,USDA_Plants
+POTR,POTR5,Populus tremuloides Michx.,USDA_Plants
+PRUNUS,PRUNU,Prunus L.,USDA_Plants
+PRPE,PRPE2,Prunus pensylvanica L. f.,USDA_Plants
+PRSE,PRSE2,Prunus serotina Ehrh.,USDA_Plants
+QUAL,QUAL,Quercus alba L.,USDA_Plants
+QUEL,QUEL,Quercus ellipsoidalis E.J. Hill,USDA_Plants
+QUMA,QUMA2,Quercus macrocarpa Michx.,USDA_Plants
+QUPR,QUMO4,Quercus prinus L.,USDA_Plants
+QURU,QURU,Quercus rubra L.,USDA_Plants
+QUVE,QUVE,Quercus velutina Lam.,USDA_Plants
+RHCA,RHCA3,Rhamnus cathartica L.,USDA_Plants
+ROPS,ROPS,Robinia pseudoacacia L.,USDA_Plants
+SAAL,SAAL5,Sassafras albidum (Nutt.) Nees,USDA_Plants
+THOC,THOC2,Thuja occidentalis L.,USDA_Plants
+TIAM,TIAM,Tilia americana L.,USDA_Plants
+TSCA,TSCA,Tsuga canadensis (L.) Carrière,USDA_Plants
+TYLA,TYLA,Typha latifolia L.,USDA_Plants
+ULAM,ULAM,Ulmus americana L.,USDA_Plants
+LONICERA,LONIC,Lonicera L.,USDA_Plants
+RHMA,RHMA,Rhexia mariana L.,USDA_Plants
+HAVI,HAVI4,Hamamelis virginiana L.,USDA_Plants
+KALA,KALA,Kalmia latifolia L.,USDA_Plants
+SPPE,SPPE,Spartina pectinata Bosc ex Link,USDA_Plants
+SALIX,SALIX,Salix L.,USDA_Plants
+PHAR,PHAR3,Phalaris arundinacea L.,USDA_Plants

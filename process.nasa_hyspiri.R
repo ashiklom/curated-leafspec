@@ -1,53 +1,82 @@
 library(specprocess)
 library(stringr)
+library(forcats)
 source('common.R')
+
+DBI::dbGetQuery(specdb$con, 'DELETE FROM projects WHERE projectcode = "nasa_hyspiri"')
 
 datapath <- '~/Projects/nasa_hyspiri'
 
 projects <- tibble(projectcode = 'nasa_hyspiri',
+                   projectshortname = 'NASA HyspIRI',
                    projectdescription = 'NASA HyspIRI field campaign',
                    pointofcontact = 'Serbin, Shawn',
                    email = 'sserbin@bnl.gov') %>%
-    db_merge_into(db = specdb, table = 'projects', values = .,
-                  by = 'projectcode', id_colname = 'projectid')
+    write_project()
 
-file_list <- list.files(datapath, '^Averaged_Spectra.csv$', recursive = TRUE) %>%
-    grep('canopy', ., ignore.case = TRUE, value = TRUE, invert = TRUE)
+rdata_path <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NASA_HyspIRI/NASA_HyspIRI_Compiled_Field_Data.RData'
+load(rdata_path)
 
-if (!exists('specdat_raw')) {
-    specdat_raw <- lapply(file.path(datapath, file_list), read_csv) %>% 
-        bind_rows(.id = 'file_number')
-    specdat_raw %<>% 
-        filter(!str_detect(Spectra, paste0('(?i)(canopy|bare|ground|',
-                                           'dirt|road|litter|cwd|soil)'))) %>%
-        mutate(specnum = row_number())
-}
+raw_spectra <- as_data_frame(hyspiri_leaf_spectra) %>% 
+    mutate(Spectra = as.character(Spectra),
+           specnum = row_number())
+raw_sla <- as_data_frame(SLA_and_Spectra) %>% 
+    mutate(Spectra = as.character(Spectra),
+           Sample_Name = as.character(Sample_Name))
+raw_chn <- as_data_frame(chn.data) %>% 
+    rename(speciescode = USDA_Species_Code) %>% 
+    mutate(collectiondate = lubridate::mdy(Sample_Date))
 
-samples_raw <- specdat_raw %>% 
-    select(-starts_with('Wave_')) %>%
-    mutate(file_name = file_list[as.numeric(file_number)],
-           file_name = str_replace(file_name, '/[Pp]rocessed.*$', ''),
-           # Parse date from file_name
-           Campaign = str_extract(file_name, '(?<=/)[[:alpha:]]+\\d{4}(?=/)'),
-           colldate_raw = str_extract(file_name, '([[:digit:]]{4}201[[:digit:]])'),
-           collectiondate = as.Date(colldate_raw, format = '%m%d%Y'),
-           collectiondate = if_else(is.na(collectiondate) & 
-                                    str_detect(file_name, '201[0-8][[:digit:]]{4}'), 
-                                as.Date(str_extract(file_name, '201[0-8][[:digit:]]{4}'),
-                                        format = '%Y%m%d'),
-                                collectiondate),
+# Match up spectra
+sla_samples_raw <- raw_sla %>% 
+    select(-starts_with('Wave')) %>% 
+    mutate(collectiondate = lubridate::ymd(Measurement_Date),
+           # Fix mislabeled instrument
+           Instrument = if_else(str_detect(Spectra, 'SJJR_Tower_PICO3_ELKCP4') & Instrument == 'FS4',
+                                'FS3', as.character(Instrument)),
+           instrumentcode = fct_recode(Instrument, 
+                                       `asd-fs3` = 'FS3',
+                                       `asd-fs4` = 'FS4',
+                                       `se-psm3500` = 'SE')) %>% 
+    select(-Measurement_Date) %>% 
+    # Average out duplicate measurements
+    group_by(Sample_Name, Spectra, collectiondate, instrumentcode) %>% 
+    summarize_if(is.numeric, mean) %>% 
+    ungroup()
+
+samples_raw <- raw_spectra %>% 
+    select(-starts_with('Wave', ignore.case = FALSE)) %>% 
+    mutate(collectiondate = lubridate::ymd(Sample_Date),
            year = lubridate::year(collectiondate),
-           year = if_else(is.na(year), 
-                          as.numeric(str_extract(file_name, '201[0-8]')), 
-                          year))
+           instrumentcode = fct_recode(Instrument,
+                                       `asd-fs3` = 'ASD_FS3',
+                                       `asd-fs4` = 'ASD_FS4',
+                                       `se-psm3500` = 'SpecEvo_PSM3500')
+           ) %>% 
+    select(-Sample_Date, -Instrument)
 
-samples_raw %>% filter(is.na(year))
+# This should be empty. That indicates that there are no SLA samples not in spectra
+#anti_join(sla_samples_raw, samples_raw)
 
 specstr <- samples_raw[['Spectra']]
 speclist <- str_split(specstr, '_')
 spec_length <- sapply(speclist, length)
 
 table(spec_length)
+
+sp4 <- do.call(rbind, speclist[spec_length == 4]) %>% 
+    as_data_frame %>% 
+    mutate(Spectra = specstr[spec_length == 4],
+           site = V1,
+           plot = V2,
+           species = case_when(str_detect(.$V2, "OakMistletoe") ~ 'PHLE14',
+                               TRUE ~ NA_character_),
+           spectratype = case_when(str_detect(.$V4, '^[Rr]') ~ 'reflectance',
+                                   str_detect(.$V4, '^[Tt]') ~ 'transmittance',
+                                   TRUE ~ NA_character_),
+           specnum = samples_raw$specnum[spec_length == 4],
+           Sample_Name = paste(V1, V2, sep = '_')
+           )
 
 sp5 <- do.call(rbind, speclist[spec_length == 5]) %>%
     as_data_frame %>%
@@ -61,7 +90,7 @@ sp5 <- do.call(rbind, speclist[spec_length == 5]) %>%
            spectratype = case_when(str_detect(.$V5, '^[Rr]') ~ 'reflectance',
                                    str_detect(.$V5, '^[Tt]') ~ 'transmittance',
                                    TRUE ~ NA_character_),
-           Sample_name = paste(V1, V2, V3, sep = '_'))
+           Sample_Name = paste(V1, V2, V3, sep = '_'))
 
 sp6 <- do.call(rbind, speclist[spec_length == 6]) %>%
     as_data_frame %>%
@@ -92,21 +121,11 @@ sp7 <- do.call(rbind, speclist[spec_length == 7]) %>%
            CanopyPosition = str_extract(V4, '(?<=^L\\d{1,2})(T|M|B)'),
            Sample_Name = paste(V1, V2, V3, V4, sep = '_'))
 
-sp8 <- do.call(rbind, speclist[spec_length == 8]) %>%
-    as_data_frame %>%
-    mutate(Spectra = specstr[spec_length == 8],
-           site = V1,
-           plot = V2,
-           species = V3,
-           specnum = samples_raw$specnum[spec_length == 8],
-           spectratype = case_when(str_detect(.$V7, '^[Rr]') ~ 'reflectance',
-                                   str_detect(.$V7, '^[Tt]') ~ 'transmittance',
-                                   TRUE ~ NA_character_),
-           CanopyPosition = str_extract(V4, '(?<=^L\\d{1,2})(T|M|B)'),
-           Sample_Name = paste(V1, V2, V3, V4, V5, sep = '_'))
-
-spectra_meta <- bind_rows(sp5, sp6, sp7, sp8) %>%
+spectra_meta <- bind_rows(sp4, sp5, sp6, sp7) %>% 
     select(-matches('^V\\d+$')) %>%
+    # Remove non-plant spectra
+    filter(!species %in% c('BareField', 'LitterNeedles', 'NPV', 'Soil',
+                           'CWD1', 'CWD2', NA)) %>% 
     mutate(speciescode = recode(species,
                                 `ImmatureOat` = 'AVENA',
                                 `ImmatureOats` = 'AVENA',
@@ -115,12 +134,13 @@ spectra_meta <- bind_rows(sp5, sp6, sp7, sp8) %>%
                                 `CAAN4sweet` = 'CAAN4',
                                 `CAAN` = 'CAAN4',
                                 `MandarinOrange` = 'CIRE3',
+                                `Orange` = 'CITRU2',
                                 `OrangeTree` = 'CITRU2',
                                 `Peach` = 'PRPE3',
                                 `LemonTree` = 'CILI5',
+                                `LemonTrees` = 'CILI5',
                                 `Grape` = 'VITIS',
-                                `OakMistletoe` = 'PHLE14',
-                                `NPV` = NA_character_),
+                                `OakMistletoe` = 'PHLE14'),
            plot = case_when(is.na(.$plot) ~ NA_character_,
                             .$plot == 'na' ~ NA_character_,
                             .$plot == 'Grape' ~ NA_character_,
@@ -133,20 +153,17 @@ spectra_meta <- bind_rows(sp5, sp6, sp7, sp8) %>%
 samples <- samples_raw %>% 
     inner_join(spectra_meta) %>%
     filter(!is.na(Sample_Name)) %>%
-    mutate(projectcode = projects$projectcode,
-           samplecode = paste(projectcode, paste(Sample_Name, Campaign, sep = '_'),
+    rename(sitecode = site) %>% 
+    mutate(projectcode = projects[['projectcode']],
+           samplecode = paste(projectcode, paste(Sample_Name, collectiondate, sep = '_'),
                               year, sep = '|'),
-           sitecode = paste(projectcode, site, sep ='.'),
            plotcode = paste(sitecode, plot, sep = '.'),
            sunshade = recode(CanopyPosition,
                              `B` = 'shade',
                              `M` = 'shade',
                              `T` = 'sun',
-                             .missing = NA_character_)) %>%
-    group_by(samplecode) %>%
-    mutate(collectiondate = mean(collectiondate, na.rm = TRUE)) %>%
-    ungroup()
-
+                             .missing = NA_character_))
+    
 # TODO: Parse out exact coordinates
 siteinfo <- readxl::read_excel(file.path(datapath, 'aaGPS_Locations', 
                                 'NASA_HyspIRI_California_Project_GPS_Locations_v2.xlsx')) %>%
@@ -157,16 +174,13 @@ siteinfo <- readxl::read_excel(file.path(datapath, 'aaGPS_Locations',
                              `Kingsburg` = 'KING',
                              `Shafter` = 'SHAF',
                              `Russell Ranch` = 'RR'),
-           sitecode = paste(projects$projectcode, sitecode, sep ='.'))
+           projectcode = projects[['projectcode']])
 
 siteplot <- samples %>%
     distinct(sitecode, plotcode) %>%
     left_join(siteinfo) %T>%
-    (. %>% distinct(sitecode) %>%
-        db_merge_into(db = specdb, table = 'sites', values = .,
-                      by = 'sitecode', id_colname = 'siteid')) %>%
-    db_merge_into(db = specdb, table = 'plots', values = .,
-                  by = c('sitecode', 'plotcode'), id_colname = 'plotid')
+    (. %>% distinct(sitecode) %>% write_sites()) %>% 
+    write_plots()
 
 #mysp <- tbl(specdb, 'species') %>%
     #select(speciescode) %>%
@@ -178,23 +192,23 @@ siteplot <- samples %>%
 samples %>%
     distinct(samplecode, projectcode, year, plotcode, speciescode, collectiondate) %>%
     db_merge_into(db = specdb, table = 'samples', values = .,
-                  by = 'samplecode', id_colname = 'sampleid', return = FALSE)
+                  by = 'samplecode', return = FALSE)
 
 ## TODO: Fill in spec methods
 #specmethods <- tribble(
-    #~spectratype, ~apparatus, 
-    #'reflectance', 'Leaf clip',
-    #'transmittance', 'Integrating sphere') %>%
-    #mutate(instrumentname = 
+#    ~spectratype, ~apparatus, 
+#    'reflectance', 'Leaf clip',
+#    'transmittance', 'Integrating sphere') %>%
+#    mutate(instrumentname = 
 
-#DBI::dbGetQuery(specdb$con,
-#'DELETE FROM spectra_info WHERE samplecode LIKE \'nasa_hyspiri%\'')
+# DBI::dbGetQuery(specdb$con,
+# 'DELETE FROM spectra_info WHERE samplecode LIKE \'nasa_hyspiri%\'')
 
 sample_condition <- samples %>%
-    select(samplecode, CanopyPosition, sunshade) %>%
+    distinct(samplecode, CanopyPosition, sunshade) %>%
+    rename(canopyposition = CanopyPosition) %>% 
     gather(condition, conditionvalue, -samplecode, na.rm = TRUE) %>%
-    db_merge_into(db = specdb, table = 'sample_condition', values = .,
-                  by = c('samplecode', 'condition'), id_colname = 'conditiondataid')
+    db_merge_into(db = specdb, table = 'sample_condition', values = ., by = c('samplecode', 'condition'))
 
 spectra_info <- samples %>%
     select(samplecode, spectratype, specnum, Spectra) %>%
@@ -203,24 +217,60 @@ spectra_info <- samples %>%
                   by = c('samplecode', 'spectratype', 'spectracomment'),
                   id_colname = 'spectraid')
 
-spectra_data <- specdat_raw %>%
+spectra_data <- raw_spectra %>%
     inner_join(spectra_info) %>%
     select(spectraid, starts_with('Wave_')) %>%
     gather(wave_raw, spectravalue, -spectraid) %>%
     mutate(wavelength = as.numeric(str_extract(wave_raw, '\\d+$'))) %>%
     write_spectradata
 
-traits_raw <- readxl::read_excel(file.path(datapath, 'NASA_HyspIRI_CHN_Samples.xlsx')) %>%
-    rename(year = Sample_Year)
+raw_chn %>% select(Sample_Name) %>% anti_join(samples)
 
-trait_data <- traits_raw %>%
-    inner_join(samples %>% distinct(Sample_Name, year, samplecode)) %>%
-    rename(leaf_C_pct_mass = Perc_C,
-           leaf_N_pct_mass = Perc_N,
-           leaf_H_pct_mass = Perc_H) %>%
-    mutate(leaf_CN_ratio_mass = leaf_C_pct_mass/leaf_N_pct_mass) %>%
+samples %>% 
+    filter(str_detect(Sample_Name, 'SJJR_Tower_QUCH2_T')) %>% 
+    select(Sample_Name)
+
+convert_unit <- function(trait, value) {
+    case_when(trait == 'SLA_cm2_g_DW', udunits2::ud.convert(value, 'cm2 g-1', ''))
+}
+
+sla_averaged <- sla_samples_raw %>% 
+    inner_join(samples %>% distinct(samplecode, Sample_Name, collectiondate)) %>% 
+    group_by(samplecode) %>% 
+    summarize(leaf_mass_per_area = mean(udunits2::ud.convert(LMA_gDW_m2, 'g m-2', 'kg m-2'))) %>% 
+    ungroup() %>% 
+    gather(trait, traitvalue, -samplecode, na.rm = TRUE)
+
+
+trait_data <- raw_chn %>% 
+    mutate(Sample_Name = str_replace(Sample_Name, '_LC(_RG)?$', ''),
+           Sample_Name = if_else(Sample_Name == 'SCRec_Plot9_PEAM3_ELK6T6sun2',
+                                 paste0(Sample_Name, 'time2'), Sample_Name),
+           Sample_Name = str_replace(Sample_Name, 'TOWER', 'Tower')) %>% 
+    select(Sample_Name, collectiondate, 
+           leaf_C_pct_mass = Perc_C, 
+           leaf_H_pct_mass = Perc_H,
+           leaf_N_pct_mass = Perc_N) %>% 
+    mutate(leaf_CN_ratio_mass = leaf_C_pct_mass/leaf_N_pct_mass) %>% 
+    inner_join(samples %>% distinct(samplecode, Sample_Name, collectiondate)) %>% 
+    # Keep only unambiguous matches
+    group_by(Sample_Name, collectiondate) %>% 
+    mutate(n = n()) %>% 
+    ungroup() %>% 
+    filter(n == 1) %>% 
     select(samplecode, starts_with('leaf_', ignore.case = FALSE)) %>%
-    gather(trait, traitvalue, -samplecode, na.rm = TRUE) %>%
-    db_merge_into(db = specdb, table = 'trait_data', values = .,
-                  by = c('samplecode', 'trait'), id_colname = 'traitdataid')
+    gather(trait, traitvalue, -samplecode, na.rm = TRUE) %>% 
+    bind_rows(sla_averaged)
+
+#trait_data %>% count(samplecode)
+
+trait_info <- trait_data %>% 
+    distinct(trait) %>% 
+    mutate(unit = case_when(str_detect(.$trait, 'pct_mass') ~ '%',
+                            .$trait == 'leaf_mass_per_area' ~ 'kg m-2',
+                            TRUE ~ NA_character_)) %>% 
+    db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
+
+db_merge_into(db = specdb, table = 'trait_data', values = trait_data, 
+              by = c('samplecode', 'trait'), return = FALSE)
 

@@ -1,0 +1,3 @@
+condition, conditiondescription, conditioncomment
+sunshade, "Whether the leaf is fully sunlit (sun) or at least partially shaded (shade)",
+canopyposition, "Relative position within the canopy (bottom, middle, or top)",

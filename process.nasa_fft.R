@@ -5,8 +5,17 @@
 
 #' # Setup
 library(specprocess)
-projectcode <- "nasa_fft"
 source('common.R')
+
+dbGetQuery(specdb$con, 'DELETE FROM projects WHERE projectcode = "nasa_fft"')
+
+projects <- tibble(
+    projectcode = 'nasa_fft',
+    projectshortname = 'NASA FFT',
+    projectdescription = 'NASA Forest Functional Types (FFT)',
+    pointofcontact = 'Serbin, Shawn',
+    email = 'serbinsh@bnl.gov') %>% 
+    write_project()
 
 #' Set paths for FFT data
 PATH.FFT <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NASA_FFT_Project'
@@ -32,7 +41,7 @@ names_all <- c(names_samples, names_specInfo)
 
 #' Load reflectance data 
 nasa_fft.all_refl <- fread(PATH.refl, header=TRUE) %>%
-    mutate(projectcode = projectcode,
+    mutate(projectcode = projects[['projectcode']],
            samplecode = paste(projectcode, Sample_Name, Sample_Year,
                               sep = '|')) %>%
     setnames(names(names_all), names_all)
@@ -69,7 +78,7 @@ message("Loading transmittance...")
 PATH.trans <- file.path(PATH.spec, "NASA_FFT_IS_Tran_Spectra_v4.csv")
 nasa_fft.trans_all <- fread(PATH.trans, header=TRUE) %>%
     setnames(names(names_all), names_all) %>%
-    mutate(samplecode = paste(projectcode, SampleName, year, 
+    mutate(samplecode = paste(projects[['projectcode']], SampleName, year, 
                               sep = '|'))
 
 samples_trans <- select(nasa_fft.trans_all,
@@ -160,7 +169,7 @@ nasa_fft.traits <- merge(merge.caps, merge.lower, by=mergeby.lower, all=T) %>%
            leaf_dN15 = SAMPLE_dN15,       # TODO: Figure out unit!
            SampleName = Sample_Name,
            year = Sample_Year) %>%
-    mutate(samplecode = paste(projectcode, SampleName, year, sep = '|'))
+    mutate(samplecode = paste(projects[['projectcode']], SampleName, year, sep = '|'))
 samples_traits <- nasa_fft.traits %>%
     select(samplecode, SampleName, year, speciesdatacode)
 
@@ -173,23 +182,19 @@ samples_all <- samples_refl %>%
     # GRAS -- Shawn thinks it's just "grass" of an unknown species
     # SORI -- Unknown site (MW), unknown species
     #filter(!speciesdatacode %in% c('SORI', 'GRAS')) %>%   # Unknown species
-    left_join(tbl(specdb, 'species_dict') %>% 
-              filter(projectcode == 'nasa_fft') %>%
-              select(speciescode, speciesdatacode) %>% 
-              collect() %>% 
-              setDT()) %>%
+    left_join(read_csv('data/nasa_fft/nasa_fft_species_dict.csv') %>% setDT()) %>% 
     .[is.na(plotcode), plotcode := stringr::str_extract(SampleName, "^[[:alnum:]]+")] %>%
     .[is.na(sitecode), sitecode := stringr::str_extract(plotcode, "^[[:alpha:]]+")] %>%
 # This is probably Madison, WI
     #filter(sitecode != 'MW') %>% 
-    mutate(projectcode = 'nasa_fft',
+    mutate(projectcode = projects[['projectcode']],
            sitecode = paste(projectcode, sitecode, sep = '.'),
            plotcode = paste(projectcode, plotcode, sep = '.'))
 
-samples_all %>%
-    group_by(samplecode) %>%
-    summarize(n = n()) %>%
-    filter(n > 1)
+#samples_all %>%
+    #group_by(samplecode) %>%
+    #summarize(n = n()) %>%
+    #filter(n > 1)
 
 ## Code to examine missing species
 #samples_refl %>% distinct(speciesdatacode)
@@ -202,20 +207,18 @@ samples_all %>%
     #select(speciesdatacode)
 
 ndup <- function(dat, colname) print(sum(duplicated(dat[[colname]])))
-sites <- distinct(samples_all, sitecode) %>% 
-    db_merge_into(db = specdb, table = 'sites', values = .,
-                  by = 'sitecode', id_colname = 'siteid')
+sites <- distinct(samples_all, sitecode) %>% write_sites()
 
 plots <- read_csv(file.path(PATH.FFT, 'Stand_Info', 'Plot_Locations', 
                             'Aggregated_N_Coords_ALL.csv')) %>%
     distinct(PLOT, SITE, LAT, LON) %>%
     rename(latitude = LAT, longitude = LON) %>%
-    mutate(sitecode = paste(projectcode, SITE, sep = '.'),
+    mutate(projectcode = projects[['projectcode']],
+           sitecode = paste(projectcode, SITE, sep = '.'),
            plotcode = paste(projectcode, PLOT, sep = '.')) %>%
     setDT() %>%
     right_join(samples_all %>% distinct(sitecode, plotcode)) %>%
-    db_merge_into(db = specdb, table = 'plots', values = .,
-                  by = c('plotcode', 'sitecode'), id_colname = 'plotid')
+    write_plots()
 
 ## Code to examine missing plots
 #semi <- plots %>% semi_join(samples_all)
@@ -229,8 +232,7 @@ plots <- read_csv(file.path(PATH.FFT, 'Stand_Info', 'Plot_Locations',
 samples <- samples_all %>%
     select(projectcode, samplecode, year, 
            sitecode, plotcode, speciescode) %>%
-    db_merge_into(db = specdb, table = 'samples', values = .,
-                  by = c('samplecode'), id_colname = 'sampleid')
+    db_merge_into(db = specdb, table = 'samples', values = ., by = c('samplecode'))
 
 condition_info <- tribble(
     ~condition, ~conditiondescription,
@@ -238,33 +240,29 @@ condition_info <- tribble(
     'NeedleOldNew', 'Whether needles are newly grown (new; age < 1) or not (old; age > 1)',
     'NeedleAge', 'Needle age in years') %>%
     db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
-                  by = c('condition', 'conditiondescription'),
-                  id_colname = 'conditionid')
+                  by = c('condition', 'conditiondescription'))
 
 sample_condition <- samples_all %>%
     select(samplecode, CanopyPosition, NeedleOldNew, NeedleAge) %>%
     melt(id.vars = 'samplecode', variable.name = 'condition',
          value.name = 'conditionvalue', na.rm = TRUE) %>%
-    db_merge_into(db = specdb, table = 'sample_condition', values = .,
-                  by = 'samplecode', id_colname = 'conditiondataid')
+    db_merge_into(db = specdb, table = 'sample_condition', values = ., by = 'samplecode')
 
 
-instruments <- db_merge_into(db = specdb, table = 'instruments',
-                             values = tibble(instrumentname = 'ASD FieldSpec 3'),
-                             by = 'instrumentname', id_colname = 'instrumentid')
+instruments <- tibble(instrumentcode = 'asd-fieldspec-3',
+                      instrumentname = 'ASD FieldSpec 3') %>% 
+    db_merge_into(db = specdb, table = 'instruments', values = ., by = 'instrumentcode')
 
 specmethods <- tribble(
-    ~spectratype, ~apparatus, ~calibration,
-    'reflectance', 'Leaf clip', 'Spectralon ratio',
-    'transmittance', 'Integrating sphere', NA) %>%
-    mutate(instrumentid = instruments$instrumentid) %>%
-    db_merge_into(db = specdb, table = 'specmethods', values = .,
-                  by = c('apparatus', 'calibration'),
-                  id_colname = 'specmethodid') %>%
+    ~specmethodcode, ~spectratype, ~apparatus, ~calibration,
+    'nasa_fft-refl', 'reflectance', 'Leaf clip', 'Spectralon ratio',
+    'nasa_fft-trans', 'transmittance', 'Integrating sphere', NA) %>%
+    mutate(instrumentcode = instruments$instrumentcode) %>%
+    db_merge_into(db = specdb, table = 'specmethods', values = ., by = 'specmethodcode') %>%
     setDT()
 
 spectra_info <- full_join(spectra_info_refl, spectra_info_trans) %>%
-    left_join(specmethods %>% select(spectratype, specmethodid)) %>%
+    left_join(specmethods %>% select(spectratype, specmethodcode)) %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
                   by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
@@ -272,7 +270,7 @@ spectra_data <- spectra_refl %>%
     left_join(spectra_trans) %>%
     left_join(spectra_info) %>%
     select(-samplecode) %>%
-    write_spectradata
+    write_spectradata()
 
 traits <- nasa_fft.traits %>%
     select(samplecode, starts_with('leaf')) %>%
@@ -285,8 +283,7 @@ trait_info <- traits %>%
                             grepl('_per_area|thickness', .$trait) ~ 'kg m-2',
                             grepl('_ratio', .$trait) ~ 'unitless',
                             TRUE ~ NA_character_)) %>%
-    db_merge_into(db = specdb, table = 'trait_info', values = .,
-                  by = 'trait', id_colname = 'traitid')
+    db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')
 
 traits <- db_merge_into(db = specdb, table = 'trait_data', values = traits,
-                        by = c('samplecode', 'trait'), id_colname = 'traitdataid')
+                        by = c('samplecode', 'trait'))

@@ -4,12 +4,12 @@ source('common.R')
 datapath <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/Jin_Wu_Brazil_Data'
 
 projects <- tibble(projectcode = 'wu_brazil',
+                   projectshortname = 'Wu et al. 2016 New Phyt.',
                    projectdescription = 'Wu et al. 2016 New Phytologist Brazil canopy traits study',
                    pointofcontact = 'Wu, Jin',
                    email = 'jinwu@bnl.gov',
                    doi = '10.1111/nph.14051') %>%
-    db_merge_into(db = specdb, table = 'projects', values = .,
-                  by = 'projectcode', id_colname = 'projectid')
+    write_project()
 
 specdata <- read_csv(file.path(datapath, 'Brazil_ASD_Leaf_Spectra_filter_v1.csv')) %>%
     mutate(wavelength = as.numeric(gsub(' nm', '', Wavelength))) %>%
@@ -40,12 +40,10 @@ traitdata <- read_csv(file.path(datapath, 'Brazil_Trait_Data_filter_v1.csv')) %>
 
 siteplot <- tribble(
     ~sitecode, ~latitude, ~longitude,
-    'wu_brazil.Brazil', (-2 - 51/60), (-54 - 58/60)) %>%
-    mutate(plotcode = sitecode) %>%
-    db_merge_into(db = specdb, table = 'sites', values = .,
-                  by = 'sitecode', id_colname = 'siteid') %>%
-    db_merge_into(db = specdb, table = 'plots', values = .,
-                  by = 'plotcode', id_colname = 'plotid')
+    'Brazil', (-2 - 51/60), (-54 - 58/60)) %>%
+    mutate(projectcode = projects$projectcode, plotcode = sitecode) %>%
+    write_sites() %>% 
+    write_plots()
 
 # TODO: Fill in missing species
 
@@ -53,34 +51,25 @@ samples <- traitdata %>%
     distinct(samplecode) %>%
     mutate(projectcode = projects$projectcode,
            plotcode = siteplot$plotcode) %>%
-    db_merge_into(db = specdb, table = 'samples', values = .,
-                  by = 'samplecode', id_colname = 'sampleid')
+    db_merge_into(db = specdb, table = 'samples', values = ., by = 'samplecode')
 
 specmethods <- tibble(
-    instrumentname = 'ASD FieldSpec Pro',
-    minwavelength = 350,
-    maxwavelength = 2500,
-    instrumentcomment = paste0('1.4nm visible, 2.2nm NIR, 2.3nm SWIR, ',
-                               'interpolated to 1nm; Analytical Spectra ',
-                               'Devices, ASD, Boulder, CO, USA'),
+    specmethodcode = 'chavana-bryant-2016',
+    instrumentcode = 'asd-fspro',
     calibration = 'Spectralon ratio',
     specmethodcomment = 'Chavana-Bryant et al. 2016; doi:10.1111/nph.13853') %>%
-    db_merge_into(db = specdb, table = 'instruments', values = .,
-                  by = 'instrumentname', id_colname = 'instrumentid') %>%
-    db_merge_into(db = specdb, table = 'specmethods', values = .,
-                  by = c('instrumentid', 'calibration', 'specmethodcomment'),
-                  id_colname = 'specmethodid')
+    db_merge_into(db = specdb, table = 'specmethods', values = ., by = 'specmethodcode')
 
 spectra_info <- specdata %>%
     distinct(samplecode) %>%
-    mutate(specmethodid = specmethods$specmethodid,
+    mutate(specmethodcode = specmethods[['specmethodcode']],
            spectratype = 'reflectance') %>%
     db_merge_into(db = specdb, table = 'spectra_info', values = .,
                   by = c('samplecode', 'spectratype'), id_colname = 'spectraid')
 
 spectra_data <- specdata %>%
     left_join(spectra_info) %>%
-    write_spectradata   
+    write_spectradata
     
 sample_condition <- traitdata %>%
     select(samplecode, CompleteLeaf, LeafAge, sunshade) %>%
@@ -89,18 +78,16 @@ sample_condition <- traitdata %>%
 sample_condition_info <- sample_condition %>%
     distinct(condition) %>%
     db_merge_into(db = specdb, table = 'sample_condition_info', values = .,
-                  by = 'condition', id_colname = 'conditionid')
+                  by = 'condition')
 
 sample_condition <- db_merge_into(db = specdb, table = 'sample_condition',
                                   values = sample_condition, 
-                                  by = c('samplecode', 'condition'),
-                                  id_colname = 'conditiondataid')
+                                  by = c('samplecode', 'condition'))
 
 trait_data <- traitdata %>%
     select(samplecode, starts_with('leaf_', ignore.case = FALSE)) %>%
     gather(trait, traitvalue, -samplecode) %T>%
     (. %>% distinct(trait) %>%
-        db_merge_into(db = specdb, table = 'trait_info', values = ., 
-                      by = 'trait', id_colname = 'traitid')) %>%
+        db_merge_into(db = specdb, table = 'trait_info', values = ., by = 'trait')) %>%
     db_merge_into(db = specdb, table = 'trait_data', values = .,
-                  by = c('samplecode', 'trait'), id_colname = 'traitdataid')
+                  by = c('samplecode', 'trait'))

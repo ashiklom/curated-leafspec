@@ -59,12 +59,10 @@ sample_condition <- samples %>%
     db_merge_into(db = specdb, table = 'sample_condition', values = ., by = c('samplecode', 'condition'))
 
 specmethods <- tibble(
-    instrumentcode = 'asd-fieldspec-pro',
+    instrumentcode = 'asd-fspro',
     specmethodcode = 'foster-method',
-    instrumentname = 'ASD FieldSpec Pro',
     apparatus = 'Leaf clip',
     specmethodcomment = 'Foster et al. (2017) FEM') %>%
-    db_merge_into(db = specdb, table = 'instruments', values = ., by = 'instrumentcode') %>%
     db_merge_into(db = specdb, table = 'specmethods', values = .,
                   by = c('instrumentcode', 'apparatus', 'specmethodcode'))
 

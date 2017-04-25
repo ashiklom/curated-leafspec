@@ -14,7 +14,7 @@ CREATE TABLE projects(
 
 CREATE TABLE sites(
     sitecode TEXT UNIQUE, 
-    projectcode TEXT REFERENCES projects (projectcode),
+    projectcode TEXT REFERENCES projects (projectcode) ON DELETE CASCADE,
     sitedescription TEXT,
     sitecomment TEXT,
     PRIMARY KEY (projectcode, sitecode)
