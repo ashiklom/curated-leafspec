@@ -12,7 +12,10 @@ speciesatt <- read_csv(attribute_path) %>%
     mutate(myco_asso = recode(myco_asso, 
                               `ECM?` = 'ECM',
                               `AM?` = 'AM',
-                              `EITHER` = 'AM + ECM',
+                              # Consider both associations as ECM
+                              # See rationale in Koele et al. 2012 New Phyt.
+                              `AM + ECM` = 'ECM',
+                              `EITHER` = 'ECM',
                               # ABM = Arbutoid, similar to ecto, so grouping them together
                               # See: http://www.davidmoore.org.uk/assets/mostly_mycology/diane_howarth/arbutoid.htm
                               `ABM` = 'ECM',

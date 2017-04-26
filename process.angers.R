@@ -82,7 +82,7 @@ specdat <- rbind(rbindlist(refl_list), rbindlist(trans_list))
 
 spec_samples <- specdat %>% distinct(samplecode)
 
-species_dict <- fread('data/angers/angers_species_dict.csv')
+species_dict <- fread('data/species_dict/angers_species_dict.csv')
 
 chem_samples <- angers.chem %>%
     distinct(samplecode, projectcode, year, sitecode, plotcode, speciesdatacode) %>%

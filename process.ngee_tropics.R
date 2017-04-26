@@ -26,6 +26,7 @@ chemfile <- list.files(path_year, "Leaf_Samples", full.names = TRUE)
 
 chemdat <- read_excel(chemfile, sheet = 4) %>%
     setDT() %>%
+    mutate(LWP_bar = as.numeric(LWP_bar)) %>% 
     mutate_if(is.numeric, na_if, y = -9999) %>%
     rename(speciesdatacode = Species, 
            SampleName = Barcode,
@@ -58,7 +59,7 @@ samples <- chemdat %>%
            projectcode = projects$projectcode,
            samplecode = paste(projectcode, SampleName, year, sep = '|'),
            plotcode = sitecode) %>%
-    left_join(read_csv('data/ngee_tropics/ngee_tropics_species_dict.csv') %>% setDT())
+    left_join(read_csv('data/species_dict/ngee_tropics_species_dict.csv') %>% setDT())
 
 #samples %>%
     #filter(is.na(speciescode), !is.na(speciesdatacode)) %>%

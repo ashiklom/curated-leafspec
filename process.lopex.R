@@ -109,7 +109,7 @@ spec_samples <- specdat %>% distinct(samplecode)
 
 chem_samples <- lopex.traits %>%
     distinct(samplecode, projectcode, year, sitecode, plotcode, samplename, speciesdatacode) %>%
-    left_join(read_csv('data/lopex/lopex_species_dict.csv') %>% setDT()) %>% 
+    left_join(read_csv('data/species_dict/lopex_species_dict.csv') %>% setDT()) %>% 
     select(-speciesdatacode)
 
 samples <- full_join(spec_samples, chem_samples) %>% 

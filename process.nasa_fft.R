@@ -182,7 +182,7 @@ samples_all <- samples_refl %>%
     # GRAS -- Shawn thinks it's just "grass" of an unknown species
     # SORI -- Unknown site (MW), unknown species
     #filter(!speciesdatacode %in% c('SORI', 'GRAS')) %>%   # Unknown species
-    left_join(read_csv('data/nasa_fft/nasa_fft_species_dict.csv') %>% setDT()) %>% 
+    left_join(read_csv('data/species_dict/nasa_fft_species_dict.csv') %>% setDT()) %>% 
     .[is.na(plotcode), plotcode := stringr::str_extract(SampleName, "^[[:alnum:]]+")] %>%
     .[is.na(sitecode), sitecode := stringr::str_extract(plotcode, "^[[:alpha:]]+")] %>%
 # This is probably Madison, WI

@@ -186,7 +186,7 @@ samples_raw <- samples_spec %>%
            plotcode = if_else(is.na(plotcode), 
                               paste(sitecode, plotcode, sep = '.'),
                               plotcode)) %>%
-    left_join(read_csv('data/ngee_arctic/ngee_arctic_species_dict.csv') %>% setDT())
+    left_join(read_csv('data/species_dict/ngee_arctic_species_dict.csv') %>% setDT())
 
 # Merge with SQL
 sites <- samples_raw %>%

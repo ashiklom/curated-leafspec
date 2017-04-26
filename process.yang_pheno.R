@@ -103,8 +103,10 @@ readYang <- function(SampleYear, Site) {
                     #YB = list('Betula alleghaniensis', 'BEAL2', 'Yellow birch'))
 
     if (is_MV){
-        dat_trait <- mutate(dat_trait, speciesdatacode = 'Quercus rubra')
+        print('Setting MV species')
+        dat_trait[['speciesdatacode']] <- 'Quercus rubra'
     } else if (is_HF) {
+        print('Setting HF species')
         dat_trait <- mutate(dat_trait, 
                             label = gsub('(RO|RM|YB).*', "\\1", barcode),
                             speciesdatacode = species[label]) %>% select(-label)
@@ -118,7 +120,7 @@ readYang <- function(SampleYear, Site) {
         distinct(samplecode, projectcode, sitecode, plotcode, speciesdatacode, DOY, year) %>%
         mutate(collectiondate = as.Date(paste(year, DOY, sep = '_'),
                                         '%Y_%j')) %>%
-        left_join(read_csv('data/yang_pheno/yang_pheno_species_dict.csv') %>% setDT()) %>% 
+        left_join(read_csv('data/species_dict/yang_pheno_species_dict.csv') %>% setDT()) %>% 
         select(-speciesdatacode) %>%
         db_merge_into(db = specdb, table = 'samples', values = ., by = 'samplecode')
 
