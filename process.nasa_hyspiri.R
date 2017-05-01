@@ -6,6 +6,7 @@ source('common.R')
 DBI::dbGetQuery(specdb$con, 'DELETE FROM projects WHERE projectcode = "nasa_hyspiri"')
 
 datapath <- '~/Projects/nasa_hyspiri'
+siteinfo_path <- '~/Dropbox/NASA_TE_PEcAn-RTM_Project/Data/NASA_HyspIRI/NASA_HyspIRI_California_Project_GPS_Locations_v2.xlsx'
 
 projects <- tibble(projectcode = 'nasa_hyspiri',
                    projectshortname = 'NASA HyspIRI',
@@ -165,8 +166,7 @@ samples <- samples_raw %>%
                              .missing = NA_character_))
     
 # TODO: Parse out exact coordinates
-siteinfo <- readxl::read_excel(file.path(datapath, 'aaGPS_Locations', 
-                                'NASA_HyspIRI_California_Project_GPS_Locations_v2.xlsx')) %>%
+siteinfo <- readxl::read_excel(siteinfo_path) %>%
     group_by(Site) %>%
     summarize(latitude = mean(Latitude, na.rm = TRUE),
               longitude = mean(Longitude, na.rm = TRUE)) %>%
@@ -177,9 +177,9 @@ siteinfo <- readxl::read_excel(file.path(datapath, 'aaGPS_Locations',
            projectcode = projects[['projectcode']])
 
 siteplot <- samples %>%
-    distinct(sitecode, plotcode) %>%
+    distinct(projectcode, sitecode, plotcode) %>%
     left_join(siteinfo) %T>%
-    (. %>% distinct(sitecode) %>% write_sites()) %>% 
+    (. %>% distinct(projectcode, sitecode) %>% write_sites()) %>% 
     write_plots()
 
 #mysp <- tbl(specdb, 'species') %>%

@@ -18,7 +18,8 @@ projects <- tibble(
     write_project()
 
 siteplot <- tibble(
-    sitecode = 'foster_beetle.MP',
+    projectcode = projects[['projectcode']],
+    sitecode = 'MP',
     sitedescription = paste('Monarch Pass,', 'Sawatch Range,', 
                             'Grand Mesa-Uncompahgre-Gunnison National Forests,',
                             'Salida, CO'),

@@ -148,7 +148,7 @@ alldat <- full_join(specdat, chemdat) %>%
 glimpse(alldat)
 
 sites <- alldat %>%
-    distinct(sitecode, sitedescription) %>%
+    distinct(projectcode, sitecode, sitedescription) %>%
     db_merge_into(db = specdb, table = 'sites', values = .,
                   by = c('projectcode', 'sitecode', 'sitedescription'))
 

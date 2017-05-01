@@ -207,7 +207,7 @@ samples_all <- samples_refl %>%
     #select(speciesdatacode)
 
 ndup <- function(dat, colname) print(sum(duplicated(dat[[colname]])))
-sites <- distinct(samples_all, sitecode) %>% write_sites()
+sites <- distinct(samples_all, projectcode, sitecode) %>% write_sites()
 
 plots <- read_csv(file.path(PATH.FFT, 'Stand_Info', 'Plot_Locations', 
                             'Aggregated_N_Coords_ALL.csv')) %>%
