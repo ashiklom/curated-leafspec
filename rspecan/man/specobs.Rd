@@ -9,4 +9,3 @@ specobs(x)
 \description{
 Specobs class
 }
-

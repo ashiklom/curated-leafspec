@@ -3,4 +3,5 @@
 S3method("[[",specobs)
 S3method(plot,specobs)
 S3method(print,specobs)
+export(create_specfile)
 export(specobs)
