@@ -1,8 +1,10 @@
 #' Add spectra matrix to NetCDF database
 #'
 #' @param mat Matrix of spectra. Wavelengths must be rows.
-#' @in
-add_spectra <- function(mat, filename, wl = seq(400, 2500), start_id = NULL) {
+#' @param wavelengths Vector of wavelengths for input spectra.
+#' @inheritParams create_specfile
+#' @export
+add_spectra <- function(mat, filename, wavelengths = seq(400, 2500), start_id = NULL) {
   if (!is.matrix(mat)) {
     warning("Converting mat to matrix")
     mat <- as.matrix(mat)

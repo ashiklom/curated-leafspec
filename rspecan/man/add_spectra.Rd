@@ -4,10 +4,14 @@
 \alias{add_spectra}
 \title{Add spectra matrix to NetCDF database}
 \usage{
-add_spectra(mat, filename, wl = seq(400, 2500), start_id = NULL)
+add_spectra(mat, filename, wavelengths = seq(400, 2500), start_id = NULL)
 }
 \arguments{
 \item{mat}{Matrix of spectra. Wavelengths must be rows.}
+
+\item{filename}{Name of spectra database}
+
+\item{wavelengths}{Vector of wavelengths for input spectra.}
 }
 \description{
 Add spectra matrix to NetCDF database

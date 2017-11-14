@@ -1,3 +1,7 @@
+library(rspecan)
+library(testthat)
+context("Reading and writing NetCDF spectra files")
+
 specfile <- "testspec.nc"
 
 suppressWarnings({
@@ -10,15 +14,14 @@ create_specfile(specfile)
 
 data(testspec, package = "PEcAnRTM")
 mat <- testspec_ACRU[, 1:2]
-wl <- seq(400, 2500)
-filename <- specfile
+wavelengths <- seq(400, 2500)
 
-add_spectra(testspec_ACRU[, 1:2], specfile, start_id = 1)
-add_spectra(testspec_ACRU[, 3:4], specfile)
+add <- add_spectra(testspec_ACRU[, 1:10], specfile)
 
-# Test that values are retrievable
-nc <- ncdf4::nc_open(specfile)
-out <- ncdf4::ncvar_get(nc, "spectra")
-dim(out)
+# Try retrieving values
+ind <- c(6, 4, 2)
+test_that("Retrieved spectra match input spectra", {
+            expect_equivalent(get_spectra(ind, specfile), testspec_ACRU[, ind])
+})
 
-file.remove(specfile)
+.zzz <- file.remove(specfile)
