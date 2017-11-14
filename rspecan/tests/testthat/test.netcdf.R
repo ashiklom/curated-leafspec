@@ -1,4 +1,4 @@
-specfile <- "tests/testspec.nc"
+specfile <- "testspec.nc"
 
 suppressWarnings({
   .zss <- file.remove(specfile)
