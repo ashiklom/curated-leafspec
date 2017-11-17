@@ -4,11 +4,17 @@ run_inversion <- function(data_name, spectra_id, prospect_version = "D", ...) {
   stopifnot(file.exists(data_path))
 
   datalist <- readRDS(data_path)
-  observed <- datalist$spectra[datalist$data_wl_inds, spectra_id]
+
   metadata <- datalist$metadata %>%
     filter(spectra_id == !!spectra_id)
   stopifnot(nrow(metadata) == 1)
 
+  obs_raw <- datalist$spectra[datalist$data_wl_inds, spectra_id]
+  miss <- is.na(obs_raw)
+  observed <- obs_raw[!miss]
+  prospect_ind <- datalist$prospect_wl_inds[!miss]
+  stopifnot(length(observed) == length(prospect_ind))
+  
   if (metadata$spectra_type == "reflectance") {
     rtm <- function(param) {
       prospect(param, prospect_version)[, 1]
@@ -22,10 +28,11 @@ run_inversion <- function(data_name, spectra_id, prospect_version = "D", ...) {
     stop("Unknown spectra type \"", metadata$spectra_type, "\"")
   }
 
-  model <- function(params) rtm(params)[datalist$prospect_wl_inds]
-  prior <- prospect_bt_prior(prospect_version)
+  model <- function(params) rtm(params)[prospect_ind]
   test_mod <- model(defparam(paste0("prospect_", tolower(prospect_version))))
   stopifnot(length(test_mod) == length(observed))
+
+  prior <- prospect_bt_prior(prospect_version)
   invert_bt(
     observed = observed,
     model = model,

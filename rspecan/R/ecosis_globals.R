@@ -8,8 +8,7 @@ ecosis_colnames <- c(
   "Spectra" = "spectra_id",
   "Latitude" = "latitude",
   "Longitude" = "longitude",
-  "Sample Collection Date" = "collection_date",
-  "Whatever" = "whatevr"
+  "Sample Collection Date" = "collection_date"
 )
 
 #' @export

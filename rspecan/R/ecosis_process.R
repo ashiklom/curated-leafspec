@@ -13,7 +13,7 @@ make_json <- function(dat, newnames = ecosis_colnames) {
 }
 
 #' @export
-col_process <- function(dat) {
+col_process <- function(dat, ecosis_colnames = ecosis_colnames) {
   nms <- ecosis_colnames[names(ecosis_colnames) %in% colnames(dat)]
   dat %>%
     rename_at(
