@@ -9,11 +9,14 @@ add_spectra <- function(mat, filename, wavelengths = seq(400, 2500), start_id = 
     warning("Converting mat to matrix")
     mat <- as.matrix(mat)
   }
-  if (nrow(mat) != length(wl)) {
-    stop("Number of rows in matrix (", nrow(mat),
-         "does not equal number of wavelengths (", length(wl), ").")
+  nwl <- length(wavelengths)
+  nid <- ncol(mat)
+  nr <- nrow(mat)
+  if (nr != nwl) {
+    stop("Number of rows in matrix (", nr,
+         "does not equal number of wavelengths (", nwl, ").")
   }
-  if (!all(diff(wl) == 1) || !is.integer(wl)) {
+  if (!all(diff(wavelengths) == 1) || !is.integer(wavelengths)) {
     stop("Wavelengths must be contiguous integer values")
   }
 
@@ -22,7 +25,7 @@ add_spectra <- function(mat, filename, wavelengths = seq(400, 2500), start_id = 
   on.exit(ncdf4::nc_close(nc))
   nc_waves <- nc$dim$wavelength$vals
   wl_min <- min(nc_waves)
-  wl_inds <- wl - wl_min
+  wl_inds <- wavelengths - wl_min
   ids <- ncdf4::ncvar_get(nc, "spectra_id")
   idmax <- max(ids)
   if (is.null(start_id)) {
@@ -38,7 +41,7 @@ add_spectra <- function(mat, filename, wavelengths = seq(400, 2500), start_id = 
   # TODO: Extend wavelengths if absent
 
   nc_start <- c(wl_inds[1], start_id)
-  nc_count <- c(length(wl), count_id)
+  nc_count <- c(nwl, count_id)
 
   ## Write to NetCDF file
   ncdf4::ncvar_put(nc, "spectra", mat, start = nc_start, count = nc_count)

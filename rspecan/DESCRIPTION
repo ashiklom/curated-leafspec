@@ -3,6 +3,13 @@ Title: Leaf reflectance spectra analysis
 Version: 0.0.0.9000
 Authors@R: person("Alexey", "Shiklomanov", email = "ashiklom@bu.edu", role = c("aut", "cre"))
 Description: Organize, store, and analyze leaf reflectance spectra.
+Depends:
+    tidyverse,
+    PEcAnRTM
+Imports:
+    here,
+    BayesianTools,
+    PEcAn.assim.batch
 License: MIT
 Encoding: UTF-8
 LazyData: true

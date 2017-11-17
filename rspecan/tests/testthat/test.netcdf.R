@@ -5,7 +5,7 @@ context("Reading and writing NetCDF spectra files")
 specfile <- "testspec.nc"
 
 suppressWarnings({
-  .zss <- file.remove(specfile)
+  .zzz <- file.remove(specfile)
   .zzz <- rm("nc")
 })
 
